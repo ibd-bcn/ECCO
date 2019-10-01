@@ -8,3 +8,5 @@ License: MIT + file LICENSE
 Author@R: 
 Encoding: UTF-8
 LazyData: true
+URL: https://github.com/llrs/ECCO
+BugReports: https://github.com/llrs/ECCO/issues
