@@ -10,3 +10,15 @@ Encoding: UTF-8
 LazyData: true
 URL: https://github.com/llrs/ECCO
 BugReports: https://github.com/llrs/ECCO/issues
+Imports: 
+    tximport,
+    gdata,
+    ggbiplot (>= 0.55),
+    readxl,
+    limma,
+    edgeR,
+    WriteXLS
+Remotes: 
+    vqv/ggbiplot
+Depends: 
+    tidyverse
