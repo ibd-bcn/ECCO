@@ -2,12 +2,13 @@ library("here")
 library("edgeR")
 library("dplyr")
 library("tidyr")
-library("recipes")
+library("ggplot2")
 
-counts <- read.table(here("data", "Counts.txt"), check.names = FALSE)
+counts <- read.table(here("data", "ORGANOIDS_STAR_RSEM_GENES.txt"), check.names = FALSE)
 
 samples <- gsub("_.*", "", colnames(counts))
 uniq_samples <- unique(samples)
+genes <- gsub("\\..*", "", rownames(counts))
 
 
 # To summarize the samples together
@@ -62,8 +63,9 @@ remove_coefficient <- meta %>%
 y <- DGEList(expr)
 # filtering
 keep <- filterByExpr(y)
-# stopifnot(sum(keep) == 13958) # With all the samples
-stopifnot(sum(keep) == 13973) # With subset of only relevant samples
+# stopifnot(sum(keep) == 13958) # With all the samples Salmon
+# stopifnot(sum(keep) == 13973) # With subset of only relevant samples Salmon
+stopifnot(sum(keep) == 14030) # With subset of only relevant samples STAR
 y <- y[keep, ]
 y_norm <- calcNormFactors(y)
 
@@ -82,34 +84,41 @@ for (l in colnames(design)) {
 }
 
 design <- cbind(Intercept = 1, design)
+# Helper functions
 paste_plus <- function(...){paste(..., collapse = " + ")}
 paste_ab <- function(a, b){paste(a, "- (", b, ")")}
 grep_level <- function(x){
     force(u_levels)
     grep(x, u_levels, value = TRUE)
-    }
+}
+contrasting <- function(x, y) {
+    paste_ab(paste_plus(grep_level(x)),
+             paste_plus(grep_level(y)))
+}
 
 contrasts <- c(
-    diff_stem = paste_ab(paste_plus(grep_level("^STEM")),
-                      paste_plus(grep_level("^DIFF"))),
-    CD_CTRL = paste_ab(paste_plus(grep_level("_CD_")),
-                      paste_plus(grep_level("_CTRL_"))),
-    pediatric_adult = paste_ab(paste_plus(grep_level("pediatric")),
-                      paste_plus(grep_level("adult"))),
-    STEM_pediatric_adult = paste_ab(paste_plus(grep_level("STEM.*pediatric")),
-                      paste_plus(grep_level("STEM.*adult"))),
-    DIFF_pediatric_adult = paste_ab(paste_plus(grep_level("DIFF.*pediatric")),
-                      paste_plus(grep_level("DIFF.*adult"))),
-    ileum_sigma = paste_ab(paste_plus(grep_level("ileum")),
-                      paste_plus(grep_level("sigma"))),
-    ileum_STEM_DIFF = paste_ab(paste_plus(grep_level("STEM.*ileum")),
-                               paste_plus(grep_level("DIFF.*ileum"))),
-    sigma_STEM_DIFF = paste_ab(paste_plus(grep_level("STEM.*sigma")),
-                               paste_plus(grep_level("DIFF.*sigma")))
+    diff_stem = contrasting("^STEM", "^DIFF"),
+    CD_CTRL = contrasting("_CD_", "_CTRL_"),
+    pediatric_adult = contrasting("pediatric", "adult"),
+    STEM__pediatric_adult = contrasting("STEM.*pediatric", "STEM.*adult"),
+    DIFF__pediatric_adult = contrasting("DIFF.*pediatric", "DIFF.*adult"),
+    ileum_sigma = contrasting("ileum", "sigma"),
+    ileum__STEM_DIFF = contrasting("STEM.*ileum", "DIFF.*ileum"),
+    sigma__STEM_DIFF = contrasting("STEM.*sigma", "DIFF.*sigma"),
+    ileum__STEM_DIFF = contrasting("STEM.*ileum", "DIFF.*ileum"),
+    sigma__STEM_DIFF = contrasting("STEM.*sigma", "DIFF.*sigma"),
+    sigma_DIFF__pediatric_adult = contrasting("DIFF.*pediatric_sigma",
+                                              "DIFF.*adult_sigma"),
+    sigma_STEM__pediatric_adult = contrasting("STEM.*pediatric_sigma",
+                                              "STEM.*adult_sigma"),
+    DIFF_ileum_vs_DIFF_sigma = contrasting("DIFF.*_ileum",
+                                              "DIFF.*_sigma"),
+    STEM_ileum_vs_STEM_sigma = contrasting("STEM.*_ileum",
+                                              "STEM.*_sigma")
 )
 
 contr.matrix <- makeContrasts(contrasts = contrasts, levels = colnames(design))
-contr.matrix
+# contr.matrix
 colnames(contr.matrix) <- names(contrasts)
 
 
@@ -121,7 +130,9 @@ plotSA(efit, main="Final model: Mean-variance trend") # We can see a plot with s
 
 dt <- decideTests(efit, lfc = 1.5)
 summary(dt)
+# Map names to HUGO
+library("org.Hs.eg.db")
+gene_names <- mapIds(org.Hs.eg.db, keys = genes, keytype = "ENSEMBL", "SYMBOL")
 
 sum(dt[, 1] != 0 & dt[, 2] != 0)
-# Map names to HUGO
-volcanoplot(efit, 7, highlight = 15, names = rownames(efit$coefficients))
+volcanoplot(efit, 1, highlight = 15, names = gene_names)
