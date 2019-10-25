@@ -18,7 +18,7 @@ assigncol <- function(pheno) {
     cat("N>9:D'ont Run")
   }
 
-  print(data.frame(group = 1:9, color = colx))
+  # print(data.frame(group = 1:9, color = colx))
 
   return(colxm)
 }
@@ -34,19 +34,10 @@ plotPCA <- function(xmat, gg) {
   g <- ggbiplot(data.pca,
     obs.scale = 0.25, var.scale = 0.5, labels.size = 3,
     groups = data.class, var.axes = FALSE, ellipse = TRUE, circle = FALSE
-  )
-  # g <- g + geom_point(aes(size=3,groups=data.class))
-  # g <- g + scale_color_discrete(name = '')
-  # g <- g + theme(legend.direction = 'horizontal',
-  #              legend.position = 'top')
-  # g<- g + geom_path(data=data.pca, aes(x=x, y=y,colour=colx), size=1, linetype=1)
-
-
-
-  g <- g + theme(
+  ) + theme(
     axis.text = element_text(size = 12),
     axis.title = element_text(size = 13)
-  )
+  ) + theme_bw()
 
 
   print(g)
@@ -54,19 +45,11 @@ plotPCA <- function(xmat, gg) {
   g <- ggbiplot(data.pca,
     obs.scale = 0.25, var.scale = 0.5, labels.size = 3,
     groups = data.class, var.axes = FALSE, labels = rownames(xmat), ellipse = TRUE, circle = FALSE
-  )
-  # g <- g + geom_point(aes(size=3,groups=data.class))
-  # g <- g + scale_color_discrete(name = '')
-  # g <- g + theme(legend.direction = 'horizontal',
-  #              legend.position = 'top')
-  # g<- g + geom_path(data=data.pca, aes(x=x, y=y,colour=colx), size=1, linetype=1)
-
-
-
-  g <- g + theme(
+  ) + theme(
     axis.text = element_text(size = 12),
     axis.title = element_text(size = 13)
-  )
+  ) +
+    theme_bw()
 
 
   print(g)
@@ -91,13 +74,13 @@ extractPC123 <- function(mydata) {
 }
 
 
-tx2gene <- read.table("annot_gencodev29.txt", sep = "\t", header = F)
-genedb <- read.table("geneannot.txt", sep = "\t", header = F)
+tx2gene <- read.table(here::here("data-raw", "annot_gencodev29.txt"), sep = "\t", header = F)
+genedb <- read.table(here::here("data-raw","geneannot.txt"), sep = "\t", header = F)
 
 equiv <- tx2gene[, c(1, 3)]
 colnames(equiv) <- c("TXNAME", "GENEID")
 
-xls <- read.xls("lista.xls")
+xls <- read.xls(here::here("data-raw","lista.xls"))
 files <- paste(as.character(xls[, 1]), "/quant.sf", sep = "")
 
 
@@ -130,7 +113,7 @@ y <- y[keep, ]
 y <- calcNormFactors(y)
 
 v <- voom(y) # v$E <-normalised matrix
-dbclin <- read.xls("CLIN.xls") # database metadata
+dbclin <- read.xls(here::here("data-raw", "CLIN.xls")) # database metadata
 
 # check merging in two first columns
 
@@ -142,7 +125,7 @@ type <- fulldb$TYPE
 STEM <- fulldb[, 4]
 STATUS <- fulldb$SAMPLE.STATUS
 
-pdf("PCA_plots.pdf")
+pdf(here::here("plots","PCA_plots.pdf"))
 plotPCA(t(v$E), STEM)
 plotPCA(t(v$E), paste(STEM, "_", loc, sep = ""))
 dev.off()
