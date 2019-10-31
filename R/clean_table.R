@@ -207,6 +207,23 @@ contr.matrix <- makeContrasts(contrasts = contrasts, levels = colnames(design))
 colnames(contr.matrix) <- names(contrasts)
 
 
+comb2 <- ComBat(y_voom$E, meta$reanalyzed, design[, -c(ncol(design), 1)])
+comb <- ComBat(y_voom$E, meta$reanalyzed)
+
+pdf("plots/ComBat2.pdf")
+plotPCA(t(comb2), meta$reanalyzed)
+plotPCA(t(comb2)[meta$cell_type == "STEM", ], meta$reanalyzed[meta$cell_type == "STEM"])
+plotPCA(t(comb2)[meta$cell_type == "STEM", ], meta$LOCATION[meta$cell_type == "STEM"])
+plotPCA(t(comb2), meta$cell_type)
+plotPCA(t(comb2), meta$TYPE)
+plotPCA(t(comb2), meta$SAMPLE)
+plotPCA(t(comb2), meta$LOCATION)
+plotPCA(t(comb2), paste(meta$reanalyzed, meta$LOCATION, sep = "_"))
+plotPCA(t(comb2), meta$GROUP)
+plotPCA(t(comb2), paste(meta$reanalyzed, meta$TYPE, sep = "_"))
+plotPCA(t(comb2), paste(meta$cell_type, meta$TYPE, sep = "_"))
+dev.off()
+
 vfit <- lmFit(y_voom, design, ndups = 0)
 # Contrasts are here!!
 vfit <- contrasts.fit(vfit, contrasts = contr.matrix)
