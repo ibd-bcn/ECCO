@@ -5,6 +5,7 @@ library("ggplot2")
 library("ggrepel")
 library("dplyr")
 library("org.Hs.eg.db")
+library("raster") # For the cv
 
 counts <- read.table(here("data", "ORGANOIDS_STAR_RSEM_GENES.txt"), check.names = FALSE)
 isos <- read.table(here("data", "ORGANOIDS_STAR_RSEM_ISOFORMS.txt"), check.names = FALSE)
@@ -122,7 +123,7 @@ keep <- filterByExpr(y)
 # stopifnot(sum(keep) == 14030) # With subset of only relevant samples STAR
 # stopifnot(sum(keep) == 13996) # With subset of only relevant samples STAR without Y genes
 stopifnot(sum(keep) == 35608) # By isoform without Y genes
-y <- y[keep, ]
+# y <- y[keep, ]
 y_norm <- calcNormFactors(y)
 
 
@@ -172,15 +173,6 @@ contrasts <- c(
     CD_CTRL = contrasting("_CD_", "_CTRL_"),
     STEM__ileum_sigma = contrasting("STEM.*ileum", "STEM.*sigma"), # STEM ileum vs STEM sigma
     DIFF__ileum_sigma = contrasting("DIFF.*ileum", "DIFF.*sigma"),# DIFF ileum vs DIFF sigma
-    STEM_ileum__pediatric_adult = contrasting("STEM.*pediatric_ileum",
-                                              "STEM.*adult_ileum"),    # STEM ileum: pediatric vs adult
-    DIFF_ileum__pediatric_adult = contrasting("DIFF.*pediatric_ileum",
-                                              "DIFF.*adult_ileum"),    # DIFF ileum: pediatric vs adult
-
-    STEM_sigma__pediatric_adult = contrasting("STEM.*pediatric_sigma",
-                                              "STEM.*adult_sigma"),    # STEM sigma: pediatric vs adult
-    DIFF_sigma__pediatric_adult = contrasting("DIFF.*pediatric_sigma",
-                                              "DIFF.*adult_sigma"),    # DIFF sigma: pediatric vs adult
     pediatric_adult = contrasting("pediatric", "adult"),
     STEM__pediatric_adult = contrasting("STEM.*pediatric", "STEM.*adult"),
     DIFF__pediatric_adult = contrasting("DIFF.*pediatric", "DIFF.*adult"),
@@ -195,6 +187,7 @@ contrasts <- c(
     ileum__adult_pediatric = contrasting("adult_ileum", "pediatric_ileum"),
     sigma_diff__pediatric_adult = contrasting("DIFF.*pediatric_sigma",
                                               "DIFF.*adult_sigma"),
+
     DIFF_ileum_CD__pediatric_adult = contrasting("DIFF_CD_pediatric_ileum",
                                                  "DIFF_CD_adult_ileum"),
     STEM_ileum_CD__pediatric_adult = contrasting("STEM_CD_pediatric_ileum",
@@ -215,6 +208,7 @@ colnames(contr.matrix) <- names(contrasts)
 
 
 vfit <- lmFit(y_voom, design, ndups = 0)
+# Contrasts are here!!
 vfit <- contrasts.fit(vfit, contrasts = contr.matrix)
 efit <- eBayes(vfit)
 # plotSA(efit, main="Final model: Mean-variance trend") # We can see a plot with slope 0
@@ -227,11 +221,11 @@ res <- design %*% efit$contrasts
 stopifnot(unname(table(res[, "diff_stem"])) == unname(table(meta$cell_type)))
 
 
-dt <- decideTests(efit, lfc = log2(1.5), adjust.method = "fdr")
+dt <- decideTests(efit, lfc = log2(1.25), adjust.method = "none")
 dtt <- summary(dt)
 dtt
 
-## Split the data in two ####
+## Split the data in two for GETS ####
 
 # Map names to HUGO
 genes <- gsub("\\..*", "", rownames(dt))
@@ -239,15 +233,50 @@ genes_n <- gsub(".*\\.[0-9]*_", "", rownames(dt))
 gene_names <- mapIds(org.Hs.eg.db, keys = genes, keytype = "ENSEMBLTRANS", "SYMBOL")
 
 gene_info <- data.frame(rownames = rownames(dt), genes, gene_names, genes_n)
-# TODO Add more data on the
-write.table(gene_info, "processed/gene_info.tsv", sep = "\t", row.names = FALSE,
+
+# Adding data from the comparisons
+tt_all <- lapply(seq_along(contrasts), function(x){
+  tt <- topTable(efit, coef = x, number = Inf)
+  colnames(tt) <- paste0(names(contrasts)[x], "_", colnames(tt))
+  tt
+})
+
+tt_all_m <- do.call(cbind, tt_all)
+tt_all_m <- tt_all_m[, !grepl("_B$|_AveExpr$|_t$", colnames(tt_all_m))]
+
+m_data <- do.call(cbind, tt_all_m)
+gene_info2 <- cbind(gene_info, m_data)
+
+
+r <- order(meta$TYPE, meta$LOCATION, meta$GROUP, meta$cell_type)
+x <- y_voom$E[, r]
+cv <- apply(x, 1, cv)
+sel_genes <- rank(abs(cv)) > length(cv)/2 # 50% of genes with more variation
+x <- cbind(rownames = rownames(x), x)
+x <- x[sel_genes, ]
+
+gene_info2 <- gene_info2[sel_genes, ]
+
+pvals <- grep("P.Value$", colnames(gene_info2))
+signif <- apply(gene_info2[, pvals], 2, function(x){x < 0.05})
+sign_df <- apply(gene_info2[, pvals-1], 2, sign)
+s <- signif*sign_df
+st <- apply(s, 2, function(x){
+  y <- x
+  y[x == -1] <- "DW"
+  y[x == 1] <- "UP"
+  y[x == 0] <- ""
+  y})
+colnames(st) <- gsub("_logFC", "_DEG", colnames(st))
+
+gene_info3 <- cbind(gene_info2, st)
+write.table(gene_info3, "processed/gene_info.tsv", sep = "\t", row.names = FALSE,
             col.names = TRUE, quote = FALSE)
 
-# Comprovar aixó del ordre!!
-r <- order(meta$TYPE, meta$LOCATION, meta$GROUP, meta$cell_type)
 meta <- meta[r, ]
 # Split the expression data
-# TODO rank rows according to a cluster
+# TODO rank rows according to a cluster, very slow
+# hc <- hclust(dist(x[, -1])) # Cannot rank them   all it doesn't fit the computer...
 stem <- y_voom$E[, r][, meta$cell_type == "STEM"]
 diff <- y_voom$E[, r][, meta$cell_type != "STEM"]
 
@@ -259,8 +288,11 @@ write.table(diff, file = "processed/diff.tsv", sep = "\t",
 write.table(stem, file = "processed/stem.tsv",
             sep = "\t", row.names = FALSE, quote = FALSE)
 
+write.table(x, file = "processed/all.tsv",
+            sep = "\t", row.names = FALSE, quote = FALSE)
+
 meta %>%
-  base::subset(cell_type == "STEM") %>%
+  filter(colname  %in% colnames(x)) %>%
   dplyr::select(-colname) %>%
   t() %>%
   write.table(file = "processed/samples_info.tsv", sep = "\t",
@@ -305,11 +337,11 @@ genes <- list(dw_sigma_adults = c("PMS1", "NEIL3", "SFR1"), #
               up_ilum_adults = c("ADH4", "TTR", "PLBD1")) # ADH4 and TTR fails the quality
 
 
-# Compare with the microarrays
+# Compare with the microarrays ####
 microarrays <- read.csv("data/microarrays.csv", check.names = FALSE, row.names = 1)
 microarray_n <- read.csv("data/microarrays_name.csv", check.names = FALSE, row.names = 1)
 selected_genes <- c("PMS1", "NEIL3", "SFR1", "PLBD1", "S100A8", "S100A9")
-library("raster")
+
 cvs <- apply(microarrays, 1, cv)
 gs <- names(cvs)[(cvs>30)]
 rows <- subset(microarray_n, probes  %in% gs | hugo  %in% selected_genes)
@@ -336,13 +368,13 @@ crs2$rownames <- rownames(crs)
 crs_long <- pivot_longer(crs2, colnames(crs))
 crs_shorter <- subset(crs_long, rownames == name & !is.na(value))
 
-g <- c("S100A8", "S100A9")
+g <- c("S100A8", "S100A9") # New function to just the correlations between the isoforms of S100A8
 pdf("plots/residuals_isoforms3.pdf")
-s <- sapply(g, function(name){
-  p <- which(colnames(crs) == name)
-  sapply(p, function(i){
-
-    cs <- data.frame(V1 = rnaseq[, i], V2 = micro[, g[g %in% name]])
+s <- sapply(g, function(name) {
+  p <- which(colnames(rnaseq) == name)
+  sapply(p, function(i) {
+    browser()
+    cs <- data.frame(V1 = rnaseq[, i], V2 = micro[, g[!g %in% name]])
     ct <- cor.test(cs$V1, cs$V2)
     lms <- lm(V2~V1, data = cs)
 
@@ -352,9 +384,9 @@ s <- sapply(g, function(name){
     }
 
     plot(cs$V1, cs$V2, xlab = paste("RNAseq", colnames(rnaseq)[i]),
-         ylab = paste("Microarray", g[g %in% name]),
-         main = name, type = "n",
-         sub = paste("r", round(ct$estimate, 5), ":p =",
+         ylab = paste("Microarray", g[!g %in% name]),
+         type = "n",
+         main = paste("r", round(ct$estimate, 5), ":p =",
                       formatC(ct$p.value, format = "e", digits = 4)
                       )
     )
