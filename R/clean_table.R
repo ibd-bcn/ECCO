@@ -114,20 +114,39 @@ genes_ensembl <- gsub("\\..*", "", rownames(expr2))
 # Expression without genes on Y
 expr2_asexual <- expr2[-which(genes_ensembl %in% ens_unique), ]
 
+old_sa <- expr2_asexual[, endsWith(colnames(expr2_asexual), "V")]
+new_sa <- expr2_asexual[, !endsWith(colnames(expr2_asexual), "V")]
+
+y_old <- DGEList(old_sa)
+y_new <- DGEList(new_sa)
 y <- DGEList(expr2_asexual)
 # filtering
 # Filtrar també que no siguin els del gen X e Y
+
+
+
 keep <- filterByExpr(y)
+keep_old <- filterByExpr(y_old)
+keep_new <- filterByExpr(y_new)
 # stopifnot(sum(keep) == 13958) # With all the samples Salmon
 # stopifnot(sum(keep) == 13973) # With subset of only relevant samples Salmon
 # stopifnot(sum(keep) == 14030) # With subset of only relevant samples STAR
 # stopifnot(sum(keep) == 13996) # With subset of only relevant samples STAR without Y genes
 stopifnot(sum(keep) == 35608) # By isoform without Y genes
-# y <- y[keep, ]
+stopifnot(sum(keep_new) == 36277)
+stopifnot(sum(keep_old) == 33830)
+
+y <- y[keep, ]
+y_new <- y_new[keep_new, ]
+y_old <- y_old[keep_new, ]
 y_norm <- calcNormFactors(y)
+y_norm_new <- calcNormFactors(y_new)
+y_norm_old <- calcNormFactors(y_old)
 
 
 y_voom <- voom(y_norm, plot = TRUE, normalize.method = "quantile") # v$E <-normalised matrix
+y_voom_new <- voom(y_norm_new, plot = TRUE, normalize.method = "quantile") # v$E <-normalised matrix
+y_voom_old <- voom(y_norm_old, plot = TRUE, normalize.method = "quantile") # v$E <-normalised matrix
 
 # PCAs
 pdf("plots/PCAs_filtered_isoforms.pdf")
@@ -150,8 +169,8 @@ grouping <- apply(meta[, c("cell_type", "GROUP", "TYPE", "LOCATION")], 1,
 grouping <- as.factor(grouping)
 design <- model.matrix(~0 + grouping, grouping)
 colnames(design) <- levels(grouping)
-design <- cbind(design, Reanalyzed = as.numeric(meta$reanalyzed))
-samples_d <- model.matrix(~0 + SAMPLES2, meta$SAMPLE2)
+# design <- cbind(design, Reanalyzed = as.numeric(meta$reanalyzed))
+samples_d <- model.matrix(~0 + SAMPLE2, data = meta[, "SAMPLE2", drop = FALSE])
 design <- cbind(design, samples_d)
 
 # Helper functions for contrasts
@@ -159,7 +178,7 @@ paste_plus <- function(...){paste(..., collapse = " + ")}
 paste_ab <- function(a, b){paste(a, "- (", b, ")")}
 grep_level <- function(x){
     # Force to actually look up on the design being used!
-    # This makes it dependent on the order it is rung!!
+    # This makes it dependent on the order it is run!!
     a <- force(colnames(design))
     grep(x, a, value = TRUE)
 }
@@ -212,8 +231,8 @@ comb <- ComBat(y_voom$E, meta$reanalyzed)
 
 pdf("plots/ComBat2.pdf")
 plotPCA(t(comb2), meta$reanalyzed)
-plotPCA(t(comb2)[meta$cell_type == "STEM", ], meta$reanalyzed[meta$cell_type == "STEM"])
-plotPCA(t(comb2)[meta$cell_type == "STEM", ], meta$LOCATION[meta$cell_type == "STEM"])
+# plotPCA(t(comb2)[meta$cell_type == "STEM", ], meta$reanalyzed[meta$cell_type == "STEM"])
+# plotPCA(t(comb2)[meta$cell_type == "STEM", ], meta$LOCATION[meta$cell_type == "STEM"])
 plotPCA(t(comb2), meta$cell_type)
 plotPCA(t(comb2), meta$TYPE)
 plotPCA(t(comb2), meta$SAMPLE)
@@ -225,10 +244,18 @@ plotPCA(t(comb2), paste(meta$cell_type, meta$TYPE, sep = "_"))
 dev.off()
 
 vfit <- lmFit(y_voom, design, ndups = 0)
+
+remove <- apply(design[!endsWith(meta$colname, "V"), ], 2, function(x){length(unique(x))})
+
+vfit_new <- lmFit(y_voom_new, design[!endsWith(meta$colname, "V"), remove > 1], ndups = 0)
+vfit_old <- lmFit(y_voom_old, design[endsWith(meta$colname, "V"), remove > 1], ndups = 0)
 # Contrasts are here!!
-vfit <- contrasts.fit(vfit, contrasts = contr.matrix)
-efit <- eBayes(vfit)
-# plotSA(efit, main="Final model: Mean-variance trend") # We can see a plot with slope 0
+vfit_new <- contrasts.fit(vfit_new, contrasts = contr.matrix[colnames(design)[remove > 1], ])
+vfit_old <- contrasts.fit(vfit_old, contrasts = contr.matrix[colnames(design)[remove > 1], ])
+efit_new <- eBayes(vfit_new)
+efit_old <- eBayes(vfit_old)
+plotSA(efit_new, main="Final model: Mean-variance trend") # We can see a plot with slope 0
+plotSA(efit_old, main="Final model: Mean-variance trend") # We can see a plot with slope 0
 
 #  To verify the contrasts is:
 #  efit$contrasts
@@ -238,7 +265,7 @@ res <- design %*% efit$contrasts
 stopifnot(unname(table(res[, "diff_stem"])) == unname(table(meta$cell_type)))
 
 
-dt <- decideTests(efit, lfc = log2(1.25), adjust.method = "none")
+dt <- decideTests(efit_new, lfc = log2(1.25), adjust.method = "none")
 dtt <- summary(dt)
 dtt
 
