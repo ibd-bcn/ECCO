@@ -6,6 +6,7 @@ library("ggrepel")
 library("dplyr")
 library("org.Hs.eg.db")
 library("raster") # For the cv
+library("sva")
 
 counts <- read.table(here("data", "ORGANOIDS_STAR_RSEM_GENES.txt"), check.names = FALSE)
 isos <- read.table(here("data", "ORGANOIDS_STAR_RSEM_ISOFORMS.txt"), check.names = FALSE)
@@ -226,8 +227,8 @@ contr.matrix <- makeContrasts(contrasts = contrasts, levels = colnames(design))
 colnames(contr.matrix) <- names(contrasts)
 
 
-comb2 <- ComBat(y_voom$E, meta$reanalyzed, design[, -c(ncol(design), 1)])
-comb <- ComBat(y_voom$E, meta$reanalyzed)
+comb2 <- ComBat(y_voom$E, meta$reanalyzed, design[, -c(ncol(design), 2)])
+comb2 <- ComBat(y_voom$E, meta$reanalyzed)
 
 pdf("plots/ComBat2.pdf")
 plotPCA(t(comb2), meta$reanalyzed)
@@ -252,8 +253,10 @@ vfit_old <- lmFit(y_voom_old, design[endsWith(meta$colname, "V"), remove > 1], n
 # Contrasts are here!!
 vfit_new <- contrasts.fit(vfit_new, contrasts = contr.matrix[colnames(design)[remove > 1], ])
 vfit_old <- contrasts.fit(vfit_old, contrasts = contr.matrix[colnames(design)[remove > 1], ])
+efit <- eBayes(vfit)
 efit_new <- eBayes(vfit_new)
 efit_old <- eBayes(vfit_old)
+plotSA(efit, main="Final model: Mean-variance trend") # We can see a plot with slope 0
 plotSA(efit_new, main="Final model: Mean-variance trend") # We can see a plot with slope 0
 plotSA(efit_old, main="Final model: Mean-variance trend") # We can see a plot with slope 0
 
@@ -382,8 +385,10 @@ genes <- list(dw_sigma_adults = c("PMS1", "NEIL3", "SFR1"), #
 
 
 # Compare with the microarrays ####
-microarrays <- read.csv("data/microarrays.csv", check.names = FALSE, row.names = 1)
-microarray_n <- read.csv("data/microarrays_name.csv", check.names = FALSE, row.names = 1)
+microarrays <- read.table("data/nov072019_Fulldata_organoides_nonFiltered.txt",
+                        check.names = FALSE, row.names = 1, sep = "\t")
+microarray_n <- read.csv("data/nov072019_Fulldata_annotation.txt",
+                         check.names = FALSE, row.names = 1, sep = "\t")
 selected_genes <- c("PMS1", "NEIL3", "SFR1", "PLBD1", "S100A8", "S100A9")
 
 cvs <- apply(microarrays, 1, cv)
