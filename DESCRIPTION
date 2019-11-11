@@ -19,7 +19,8 @@ Imports:
     tximport (>= 1.12.3),
     WriteXLS (>= 5.0.0),
     recipes (>= 0.1.7),
-    org.Hs.eg.db (>= 3.8.2)
+    org.Hs.eg.db (>= 3.8.2),
+    matrixStats
 Remotes: 
     vqv/ggbiplot
 Author@R: 
