@@ -1,3 +1,4 @@
+library("affy")
 library("edgeR")
 library("tidyr")
 library("ggplot2")
@@ -8,6 +9,74 @@ library("here")
 library("matrixStats")
 library("hgu219.db") # Newest
 library("hgu219hsentrezg.db") # From local storage...
+
+
+# Functions  ####
+# taken from correlation_CEL_vs_RNAseq.R
+remove.genes.with.low.expression <- function(data, q) {
+  data.means <- as.data.frame(rowMeans(data)) # RNA-seq data: removing genes with low expression ( < 10th quantile)
+  min.exp <- quantile(data.means[, 1], q, na.rm = TRUE)
+  # data <- data[rownames(data.means)[data.means[,1] > min.exp],]
+  data <- data[data.means[, 1] > min.exp, ]
+
+  if (nrow(data) == 0) {
+    stop("[     ERROR]\tNo genes in data\n")
+  }
+
+  return(data)
+}
+
+remove.genes.with.low.CV <- function(data, q) {
+  cv <- apply(data, 1, sd) / apply(data, 1, mean)
+  cut <- quantile(cv, q)
+  filter <- which(cv > cut)
+
+  data <- data[filter, ]
+
+  if (nrow(data) == 0) {
+    stop("[     ERROR]\tNo genes in data\n")
+  }
+
+  return(data)
+}
+
+plot.CEL.vs.RNAseq <- function(CEL.data, RNAseq.data, file, xlab, ylab) {
+  cel <- rowMeans(CEL.data)
+  rnaseq <- rowMeans(RNAseq.data)
+
+  min <- min(cel, rnaseq)
+  max <- max(cel, rnaseq)
+
+  gene.list <- intersect(rownames(CEL.data), rownames(RNAseq.data))
+
+  pdf(file)
+
+  x.list <- vector(, length(gene.list))
+  y.list <- vector(, length(gene.list))
+
+  plot(1, type = "n", xlim = c(min, max), ylim = c(min, max), main = "CEL vs RNA-seq\nComparison of means", xlab = xlab, ylab = ylab)
+
+  for (i in 1:length(gene.list))
+  {
+    gene <- gene.list[i]
+
+    x <- mean(RNAseq.data[gene, ])
+    y <- mean(CEL.data[gene, ])
+
+    points(x, y, pch = 20, cex = 0.6, col = "blue")
+
+    x.list[i] <- x
+    y.list[i] <- y
+  }
+
+  segments(min, min, max, max, lty = "dashed")
+
+  c <- cor.test(x.list, y.list, method = "pearson")
+
+  legend("topright", legend = paste("r =", round(c$estimate, 2)), cex = 1, bty = "n")
+
+  dev.off()
+}
 
 ## Metadata ####
 rename_cols <- c(colname = "AGILENT/ARRAY CODE",
@@ -62,27 +131,28 @@ expr <- umat[, meta$colname[meta$reanalyzed]]
 dge_rna <- DGEList(expr)
 dge_rna <- calcNormFactors(dge_rna)
 voom_rna <- voom(dge_rna, plot = FALSE, normalize.method = "quantile")
+voom_rna <- voom_rna$E
 
 # microarray ####
-microarrays <- read.table(
-    here::here("data", "nov072019_Fulldata_organoides_nonFiltered.txt"),
-    check.names = FALSE, row.names = 1, sep = "\t")
-microarrays <- as.matrix(microarrays)
-microarray_n <- read.csv(
-    here::here("data", "nov072019_Fulldata_annotation.txt"),
-    check.names = FALSE, row.names = 1, sep = "\t")
+# Already normalized by RMA
+microarrays <- readRDS(here::here("data", "microarrays.RDS"))
+microarray_n <- read.csv(here::here("data", "nov142019_Fulldata_annotation.txt"),
+                         check.names = FALSE, row.names = 1, sep = "\t")
 
-# Use the default normalization
-# dge_micro <- DGEList(microarrays)
-# dge_micro <- calcNormFactors(dge_micro)
-# voom_micro <- voom(dge_micro, plot = FALSE, normalize.method = "quantile")
+
+# Use the default normalization ####
+e_micro <- remove.genes.with.low.expression(exprs(microarrays), 0.8)
+expr_micro <- remove.genes.with.low.CV(e_micro, 0.8)
+
+
+e_rna <- remove.genes.with.low.expression(voom_rna, 0.8)
+expr_rna <- remove.genes.with.low.CV(e_rna, 0.8)
 
 # Prepare the data ####
 # Subset samples and reorder them
-shared_names <- intersect(meta$SAMPLE, colnames(microarrays))
-expr_rna <- voom_rna$E[, match(shared_names, meta$SAMPLE[meta$reanalyzed])]
-expr_micro <- microarrays[, shared_names]
-# expr_micro <- voom_micro$E[, shared_names]
+shared_names <- intersect(meta$SAMPLE, colnames(expr_micro))
+expr_micro <- expr_micro[, shared_names]
+expr_rna <- expr_rna[, meta$colname[meta$SAMPLE %in% shared_names]]
 
 # Subset genes
 genes_rna <- data.frame(real = rownames(expr_rna),
@@ -91,6 +161,7 @@ genes_rna <- data.frame(real = rownames(expr_rna),
 microarray_n <- microarray_n[microarray_n$probes %in% rownames(expr_micro), ]
 
 shared_genes <- intersect(genes_rna$hugo, microarray_n$hugo)
+stopifnot(length(shared_genes) > 1)
 shared_genes <- shared_genes[!is.na(shared_genes)]
 
 microarray_n <- microarray_n[microarray_n$hugo %in% shared_genes, ]
@@ -107,17 +178,23 @@ colnames(expr_micro) <- colnames(expr_rna)
 rownames(expr_rna) <- genes_rna$hugo
 rownames(expr_micro) <- microarray_n$hugo
 
-write.csv(expr_rna, file = "processed/RNAseq_samples.csv")
-write.csv(expr_micro, file = "processed/microarray_samples.csv")
+# write.csv(expr_rna, file = "processed/RNAseq_samples.csv")
+# write.csv(expr_micro, file = "processed/microarray_samples.csv")
+# expr <- cbind(expr_micro, expr_rna)
+# e2 <- limma::normalizeBetweenArrays(expr)
+
 
 # Scale/normalize
-r_values <- rowMedians(scale(expr_rna, center = TRUE, scale = FALSE))
-m_values <- rowMedians(scale(expr_micro, center = TRUE, scale = FALSE))
+r_values <- expr_rna -rowMedians(expr_rna, center = TRUE, scale = FALSE)
+m_values <- expr_micro-rowMedians(expr_micro, center = TRUE, scale = FALSE)
 
+r_values <- rowMeans(r_values)
+m_values <- rowMeans(m_values)
 names(r_values) <- rownames(expr_rna)
 names(m_values) <- rownames(expr_micro)
 
 # Compare ####
+cor.test(r_values, m_values, method = "spearman")
 pars <- par(pty = "s")
 plot(r_values, m_values, xlab = "RNA-seq", ylab = "Microarray",
      pch = 16, cex = 0.5, asp = 1, main = "Comparing organoids expression")
@@ -128,12 +205,12 @@ par(pars)
 data.frame(rnaseq = r_values,
            micro = m_values) %>%
     ggplot(aes(rnaseq, micro)) +
-    geom_point() +
+    ggpointdensity::geom_pointdensity() +
+    viridis::scale_color_viridis() +
     geom_smooth(method = "lm") +
     labs(x = "RNA-seq", y = "Microarray",
          title = "Comparing organoids expression") +
     coord_fixed(xlim = c(-7, 7), ylim = c(-7, 7)) +
     theme_minimal()
-cor.test(r_values, m_values)
 lm(r_values ~ m_values) %>%
     broom::tidy()
