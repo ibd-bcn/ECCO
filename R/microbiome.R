@@ -13,6 +13,10 @@ prop_microb <- prop.table(microb, 2)
 non_empty <- rowSums(microb)
 m <- dfrtopics::gather_matrix(microb)
 
+df <- as.data.frame(t(prop_microb[c(5, 20, 26), ]))
+ggplot(df) +
+    geom_point(aes(Bacteroidetes, Firmicutes, size = Proteobacteria))
+
 isC <- decontam::isContaminant(t(microb), conc = rep(500, ncol(microb)),  method = "frequency")
 
 
