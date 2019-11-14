@@ -128,32 +128,44 @@ umat <- umat[rowSums(umat) != 0, ]
 
 expr <- umat[, meta$colname[meta$reanalyzed]]
 
-dge_rna <- DGEList(expr)
-dge_rna <- calcNormFactors(dge_rna)
-voom_rna <- voom(dge_rna, plot = FALSE, normalize.method = "quantile")
-voom_rna <- voom_rna$E
-
 # microarray ####
 # Already normalized by RMA
 microarrays <- readRDS(here::here("data", "microarrays.RDS"))
 microarray_n <- read.csv(here::here("data", "nov142019_Fulldata_annotation.txt"),
                          check.names = FALSE, row.names = 1, sep = "\t")
 
+shared_names <- intersect(meta$SAMPLE, colnames(microarrays))
+expr <- expr[, meta$colname[meta$SAMPLE %in% shared_names]]
+microarrays <- microarrays[, shared_names]
+micro <- affy::rma(microarrays, verbose = FALSE, normalize = TRUE)
+
+
+dge_rna <- DGEList(expr)
+dge_rna <- calcNormFactors(dge_rna)
+voom_rna <- voom(dge_rna, plot = FALSE, normalize.method = "quantile")
+voom_rna <- voom_rna$E
 
 # Use the default normalization ####
-e_micro <- remove.genes.with.low.expression(exprs(microarrays), 0.8)
-expr_micro <- remove.genes.with.low.CV(e_micro, 0.8)
+low_CV <- 0.25
+low_expression <- 0.1
+e_micro <- remove.genes.with.low.expression(exprs(micro), low_expression)
+expr_micro <- remove.genes.with.low.CV(e_micro, low_CV)
 
 
-e_rna <- remove.genes.with.low.expression(voom_rna, 0.8)
-expr_rna <- remove.genes.with.low.CV(e_rna, 0.8)
+e_rna <- remove.genes.with.low.expression(voom_rna, low_expression)
+expr_rna <- remove.genes.with.low.CV(e_rna, low_CV)
+
+# Scale and do the median
+r_values <- scale(rowMedians(expr_rna), center = TRUE, scale = FALSE)
+m_values <- scale(rowMedians(expr_micro), center = TRUE, scale = FALSE)
+
+dim(r_values) <- NULL
+dim(m_values) <- NULL
+
+names(r_values) <- rownames(expr_rna)
+names(m_values) <- rownames(expr_micro)
 
 # Prepare the data ####
-# Subset samples and reorder them
-shared_names <- intersect(meta$SAMPLE, colnames(expr_micro))
-expr_micro <- expr_micro[, shared_names]
-expr_rna <- expr_rna[, meta$colname[meta$SAMPLE %in% shared_names]]
-
 # Subset genes
 genes_rna <- data.frame(real = rownames(expr_rna),
                         hugo = gsub(".*_(.*)", "\\1", rownames(expr_rna)))
@@ -171,33 +183,17 @@ microarray_n <- microarray_n[match(shared_genes, microarray_n$hugo), ]
 microarray_n <- droplevels(microarray_n)
 genes_rna <- genes_rna[match(shared_genes, genes_rna$hugo), ]
 
-expr_rna <- expr_rna[genes_rna$real, ]
-expr_micro <- expr_micro[microarray_n$probes, ]
-
-colnames(expr_micro) <- colnames(expr_rna)
-rownames(expr_rna) <- genes_rna$hugo
-rownames(expr_micro) <- microarray_n$hugo
-
-# write.csv(expr_rna, file = "processed/RNAseq_samples.csv")
-# write.csv(expr_micro, file = "processed/microarray_samples.csv")
-# expr <- cbind(expr_micro, expr_rna)
-# e2 <- limma::normalizeBetweenArrays(expr)
-
-
-# Scale/normalize
-r_values <- expr_rna -rowMedians(expr_rna, center = TRUE, scale = FALSE)
-m_values <- expr_micro-rowMedians(expr_micro, center = TRUE, scale = FALSE)
-
-r_values <- rowMeans(r_values)
-m_values <- rowMeans(m_values)
-names(r_values) <- rownames(expr_rna)
-names(m_values) <- rownames(expr_micro)
+r_values <- r_values[genes_rna$real]
+m_values <- m_values[microarray_n$probes]
 
 # Compare ####
-cor.test(r_values, m_values, method = "spearman")
+cors <- cor.test(r_values, m_values, method = "spearman")
+# L'escalat sembla com si es fes la mitjana per mostra no per gen!!!
+# Llavors la correlació s'aproxima (tot i que els números no)
 pars <- par(pty = "s")
 plot(r_values, m_values, xlab = "RNA-seq", ylab = "Microarray",
      pch = 16, cex = 0.5, asp = 1, main = "Comparing organoids expression")
+legend("topleft", legend = paste("r", signif(cors$estimate, 1)))
 abline(a = 0, b = 1, col = "red", lty = 2)
 # text(x = 1, y = -1, labels = "1446 genes")
 par(pars)
