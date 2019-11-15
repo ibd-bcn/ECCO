@@ -107,6 +107,7 @@ meta <- readxl::read_excel(here::here("data", "variables CD cohort.xlsx")) %>%
 # RNAseq ####
 counts <- read.table(here::here("data", "ORGANOIDS_STAR_RSEM_GENES.txt"), check.names = FALSE)
 
+counts <- round(counts, 0)
 samples <- gsub("_.*", "", colnames(counts))
 uniq_samples <- unique(samples)
 genes <- gsub("\\..*", "", rownames(counts))
@@ -129,13 +130,11 @@ umat <- umat[rowSums(umat) != 0, ]
 expr <- umat[, meta$colname[meta$reanalyzed]]
 
 # microarray ####
-# Already normalized by RMA
 microarrays <- readRDS(here::here("data", "microarrays.RDS"))
-microarray_n <- read.csv(here::here("data", "nov142019_Fulldata_annotation.txt"),
-                         check.names = FALSE, row.names = 1, sep = "\t")
 
 shared_names <- intersect(meta$SAMPLE, colnames(microarrays))
-expr <- expr[, meta$colname[meta$SAMPLE %in% shared_names]]
+expr_names <- meta$colname[meta$SAMPLE %in% shared_names]
+expr <- expr[, expr_names]
 microarrays <- microarrays[, shared_names]
 micro <- affy::rma(microarrays, verbose = FALSE, normalize = TRUE)
 
@@ -159,44 +158,72 @@ expr_rna <- remove.genes.with.low.CV(e_rna, low_CV)
 r_values <- scale(rowMedians(expr_rna), center = TRUE, scale = FALSE)
 m_values <- scale(rowMedians(expr_micro), center = TRUE, scale = FALSE)
 
+r2_values <- rowMeans(expr_rna)
+m2_values <- rowMeans(expr_micro)
+
+
+r3_values <- rowMeans(expr_rna - rowMedians(expr_rna))
+m3_values <- rowMeans(expr_micro - rowMedians(expr_micro))
+
 dim(r_values) <- NULL
 dim(m_values) <- NULL
 
-names(r_values) <- rownames(expr_rna)
-names(m_values) <- rownames(expr_micro)
 
 # Prepare the data ####
 # Subset genes
 genes_rna <- data.frame(real = rownames(expr_rna),
-                        hugo = gsub(".*_(.*)", "\\1", rownames(expr_rna)))
+                        hugo = gsub("(ENSG[0-9]*\\.[0-9]*_)", "",
+                                    rownames(expr_rna)))
 
-microarray_n <- microarray_n[microarray_n$probes %in% rownames(expr_micro), ]
+id <- as.character(rownames(expr_micro))
 
-shared_genes <- intersect(genes_rna$hugo, microarray_n$hugo)
-stopifnot(length(shared_genes) > 1)
+symb <- unlist(mget(id,hgu219hsentrezgSYMBOL, ifnotfound=NA))
+name <- unlist(mget(id,hgu219hsentrezgGENENAME, ifnotfound=NA))
+nameACC <- unlist(mget(id,hgu219hsentrezgACCNUM, ifnotfound=NA))
+entrez <- unlist(mget(id,hgu219hsentrezgENTREZID, ifnotfound=NA))
+
+annotation <- data.frame(probe = id, gene = symb, entrez = entrez,
+                         definition = name, stringsAsFactors = FALSE)
+
+
+
+names(r_values) <- genes_rna$hugo
+names(m_values) <- annotation$gene
+names(r2_values) <- genes_rna$hugo
+names(m2_values) <- annotation$gene
+names(r3_values) <- genes_rna$hugo
+names(m3_values) <- annotation$gene
+
+
+shared_genes <- intersect(names(r_values), names(m_values))
 shared_genes <- shared_genes[!is.na(shared_genes)]
+stopifnot(length(shared_genes) > 1000)
 
-microarray_n <- microarray_n[microarray_n$hugo %in% shared_genes, ]
-genes_rna <- genes_rna[genes_rna$hugo %in% shared_genes, ]
-
-microarray_n <- microarray_n[match(shared_genes, microarray_n$hugo), ]
-microarray_n <- droplevels(microarray_n)
-genes_rna <- genes_rna[match(shared_genes, genes_rna$hugo), ]
-
-r_values <- r_values[genes_rna$real]
-m_values <- m_values[microarray_n$probes]
+r_values <- r_values[shared_genes]
+m_values <- m_values[shared_genes]
+r2_values <- r2_values[shared_genes]
+m2_values <- m2_values[shared_genes]
+r3_values <- r3_values[shared_genes]
+m3_values <- m3_values[shared_genes]
 
 # Compare ####
-cors <- cor.test(r_values, m_values, method = "spearman")
-# L'escalat sembla com si es fes la mitjana per mostra no per gen!!!
-# Llavors la correlació s'aproxima (tot i que els números no)
-pars <- par(pty = "s")
-plot(r_values, m_values, xlab = "RNA-seq", ylab = "Microarray",
-     pch = 16, cex = 0.5, asp = 1, main = "Comparing organoids expression")
-legend("topleft", legend = paste("r", signif(cors$estimate, 1)))
-abline(a = 0, b = 1, col = "red", lty = 2)
-# text(x = 1, y = -1, labels = "1446 genes")
-par(pars)
+
+plot_cor <- function(x, y) {
+  cors <- cor.test(x, y, method = "spearman")
+  # L'escalat sembla com si es fes la mitjana per mostra no per gen!!!
+  # Llavors la correlació s'aproxima (tot i que els números no)
+  pars <- par(pty = "s")
+  plot(x, y, xlab = "RNA-seq", ylab = "Microarray",
+       pch = 16, cex = 0.5, asp = 1, main = "Comparing organoids expression")
+  legend("topleft", legend = paste("r", signif(cors$estimate, 1)))
+  abline(a = 0, b = 1, col = "red", lty = 2)
+  # text(x = 1, y = -1, labels = "1446 genes")
+  on.exit(par(pars))
+}
+
+plot_cor(r_values, m_values)
+plot_cor(r2_values, m2_values)
+plot_cor(r3_values, m3_values)
 
 data.frame(rnaseq = r_values,
            micro = m_values) %>%
