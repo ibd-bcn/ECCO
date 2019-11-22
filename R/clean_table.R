@@ -65,6 +65,7 @@ meta <- readxl::read_excel("data/variables CD cohort.xlsx") %>%
                             TRUE ~ TYPE),
            SAMPLE2 = gsub("/.*", "", gsub(" .*", "", trimws(gsub("STEM|DIFF.?", "", gsub("RNA ", " ", SAMPLE)))))
            )
+
 expr <- umat[, meta$colname]
 expr2 <- umat2[, meta$colname]
 
