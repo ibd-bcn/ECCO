@@ -57,9 +57,10 @@ umat <- group_samples(counts, uniq_samples)
 umat <- umat[rowSums(umat) != 0, ]
 
 # Subset to just old samples
-expr <- umat[, colnames(umat) %in% meta$colname[meta$reanalyzed]]
-meta <- meta[meta$colname %in% colnames(expr), ]
-expr <- expr[, meta$colname]
+shared_samples <- intersect(colnames(umat), meta$colname[meta$reanalyzed])
+expr <- umat[, shared_samples]
+meta <- meta[match(shared_samples, meta$colname), ]
+
 stopifnot(meta$colname == colnames(expr)) # Same order
 
 
@@ -138,7 +139,6 @@ d2[d2 == 0] <- NA
 write.csv(d2, file = "processed/comparisons.csv", row.names = TRUE)
 
 dge_rna <- calcNormFactors(dge_rna, method = "TMM")
-# Limma p 125-126 two vooms
 voom_rna <- voom(dge_rna, plot = TRUE, normalize.method = "cyclicloess")
 
 vfit <- lmFit(voom_rna, design = design)
@@ -157,40 +157,14 @@ for (i in seq_len(ncol(contr.matrix))) {
 }
 dev.off()
 
+saveRDS(ttc, "processed/tt_complex.RDS")
 
 dt <- decideTests(efit, lfc = log2(1.5), adjust.method = "fdr")
 dtt <- summary(dt)
 dtt
 
 # Evaluation ####
-
-
-
 tt <- vector("list", length(contrasts))
-pdf("processed/MA_single.pdf")
-for (i in seq_along(contrasts)) {
-# Checking contrasts  (order of contrast affects them )
-# they are picking the right samples
-
-    contr <- pick[, i]
-    dge_rna <- DGEList(expr[, contr != 0])
-    keep <- filterByExpr(dge_rna)
-    dge_rna <- dge_rna[keep, , keep.lib.size = FALSE]
-    dge_rna <- calcNormFactors(dge_rna, method = "TMM")
-    logCPM <- cpm(dge_rna, log=TRUE, prior.count=3)
-    voom_rna <- voom(logCPM, plot = FALSE, normalize.method = "quantile")
-    stopifnot(ncol(voom_rna$E) == p[i])
-    boxplot(voom_rna$E, main = names(contrasts)[i],
-            col = as.factor(contr[contr != 0]))
-
-    vfit <- lmFit(voom_rna, contr[contr != 0])
-    efit <- eBayes(vfit)
-
-    tt[[i]] <- topTreat(efit, coef = 1, number = Inf)
-    plot(tt[[i]]$AveExpr, tt[[i]]$logFC, main = names(contrasts)[i], pch = 16)
-
-}
-dev.off()
 
 # Prepare for GET ####
 # perl ~/Documents/projects/GETS/gets.pl --matrix=./processed/STEM_old.tsv --geneinfo=./processed/gene_info_old.tsv --sampleinfo=./processed/STEM_samples_info_old.tsv --colors=./processed/colors_info_old.tsv --output=./processed/STEM_GETS_old --center=TRUE --overwrite=TRUE
@@ -239,9 +213,10 @@ write.table(gene_info2[, -1], "processed/gene_info_old.tsv", sep = "\t", row.nam
             col.names = TRUE, quote = FALSE, na = "")
 
 stopifnot(ncol(voom_rna$E) == nrow(meta))
-r <- order(meta$TYPE, meta$cell_type, meta$LOCATION, meta$GROUP)
+
+r <- order(meta$cell_type, meta$LOCATION, meta$TYPE, meta$GROUP)
 meta_o <- meta[r, -10]
-meta_o <- meta_o[, c("colname", "TYPE", "cell_type", "LOCATION", "GROUP", "status",
+meta_o <- meta_o[, c("colname", "cell_type", "LOCATION", "TYPE", "GROUP", "status",
            "age", "AaD", "SAMPLE", "SAMPLE2")]
 expr_csv <- voom_rna$E[, r]
 stopifnot(ncol(expr_csv) == nrow(meta))

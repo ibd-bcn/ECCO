@@ -152,8 +152,8 @@ multilimma <- function(xdat, classes, nmethod) {
 }
 
 results <- multilimma(cnt, comps, "cyclicloess")
+saveRDS(results, "processed/juanjo_res.RDS")
 
-dfall <- data.frame(Gene = rownames(cnt), r2, results$fc, results$p, results$t, results$fdr)
 
 r <- abs(results$fc) > 1.5 & results$p < 0.05
 r2 <- r
@@ -162,10 +162,32 @@ r2[results$fc > 1.5 & r] <- "UP"
 r2[results$fc > 1.5 & results$fdr < 0.05] <- "UUP"
 r2[results$fc < -1.5 & results$fdr < 0.05] <- "DDW"
 r2[r2 %in% c("FALSE", "TRUE")] <- ""
-
-results <- multilimma(cnt, comps, "quantile")
-colnames(r2) <- gsub("^fc_", "", colnames(r2))
-WriteXLS("dfall", "FULLRESULTS_CYCLICLOESS.xls")
+colnames(r2) <- gsub("fc_", "sign_", colnames(r2))
+contrasts_prefix <- paste0("contrast", seq_len(ncol(results$fc)))
+colnames(r2) <- paste(contrasts_prefix, colnames(r2))
+colnames(results$fc) <- paste(contrasts_prefix, colnames(results$fc))
+colnames(results$p) <- paste(contrasts_prefix, colnames(results$p))
+colnames(results$t) <- paste(contrasts_prefix, colnames(results$t))
+colnames(results$fdr) <- paste(contrasts_prefix, colnames(results$fdr))
 
 dfall <- data.frame(Gene = rownames(cnt), r2, results$fc, results$p, results$t, results$fdr)
+write.table(dfall, file = "processed/genes_juanjo.tsv", sep = "\t", row.names = FALSE,
+            col.names = TRUE, quote = FALSE, na = "")
+WriteXLS("dfall", "FULLRESULTS_CYCLICLOESS.xls")
+
+results <- multilimma(cnt, comps, "quantile")
+dfall <- data.frame(Gene = rownames(cnt), r2, results$fc, results$p, results$t, results$fdr)
+r <- abs(results$fc) > 1.5 & results$p < 0.05
+r2 <- r
+r2[results$fc < -1.5 & r] <- "DW"
+r2[results$fc > 1.5 & r] <- "UP"
+r2[results$fc > 1.5 & results$fdr < 0.05] <- "UUP"
+r2[results$fc < -1.5 & results$fdr < 0.05] <- "DDW"
+r2[r2 %in% c("FALSE", "TRUE")] <- ""
+colnames(r2) <- gsub("fc_", "sign_", colnames(r2))
+
+contrasts_prefix <- paste0("contrast", seq_len(ncol(results$fc)))
+colnames(r2) <- paste(contrasts_prefix, colnames(r2))
+dfall <- data.frame(Gene = rownames(cnt), r2, results$fc, results$p, results$t, results$fdr)
+
 WriteXLS("dfall", "FULLRESULTS_QUANTILE.xls")
