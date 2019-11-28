@@ -170,7 +170,12 @@ colnames(results$p) <- paste(contrasts_prefix, colnames(results$p))
 colnames(results$t) <- paste(contrasts_prefix, colnames(results$t))
 colnames(results$fdr) <- paste(contrasts_prefix, colnames(results$fdr))
 
-dfall <- data.frame(Gene = rownames(cnt), r2, results$fc, results$p, results$t, results$fdr)
+dfall <- data.frame(Gene = rownames(cnt),
+                    r2,
+                    results$fc,
+                    results$p,
+                    # results$t,
+                    results$fdr)
 write.table(dfall, file = "processed/genes_juanjo.tsv", sep = "\t", row.names = FALSE,
             col.names = TRUE, quote = FALSE, na = "")
 WriteXLS("dfall", "FULLRESULTS_CYCLICLOESS.xls")
