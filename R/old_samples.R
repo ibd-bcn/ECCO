@@ -103,155 +103,168 @@ contrasting <- function(x, y, design_m) {
 # On 28/11/2019 morning Isa asked me to make it as in the previous analysis of microarrays
 # On 28/112019 afternon Isa asked me to make it the full 36 contrasts from pegs_organoids_2017 project
 # and remove those that don't make sense
+# On 29/11/2019 afternon I asked Isa  about what to do about contrast14_stem_colon_CD_A_P and contrast29_CD_A_P
+# The difference is between having healthy and not having healthy samples on each group
 contrasts <- c(
-    stem_diff_colon_A = contrasting("STEM.*adult_sigma", "DIFF.*adult_sigma", design), # 1
-    stem_diff_colon_P = contrasting("STEM.*pediatric_sigma", "DIFF.*pediatric_sigma", design), #  2
-    stem_diff_ileum_A = contrasting("STEM.*adult_ileum", "DIFF.*adult_ileum", design), #  3
-    # stem_diff_ileum_P = contrasting("STEM.*pediatric_ileum", "DIFF.*pediatric_ileum", design),  #  4
-    stem_ileum_colon_A = contrasting("STEM.*adult_ileum", "STEM.*adult_sigma", design), #  5
-    stem_ileum_colon_P = contrasting("STEM.*pediatric_ileum", "STEM.*pediatric_sigma", design), #  6
-    diff_ileum_colon_A = contrasting("DIFF.*adult_ileum", "DIFF.*adult_sigma", design), #  7
-    # diff_ileum_colon_P = contrasting("DIFF.*pediatric_ileum", "DIFF.*pediatric_sigma", design),  #  8
-    diff_H_CD_colon_A = contrasting("DIFF_CTRL_adult_sigma", "DIFF_CD_adult_sigma", design), #  9
-    stem_H_CD_colon_A = contrasting("STEM_CTRL_adult_sigma", "STEM_CD_adult_sigma", design),  #  10
-    stem_H_CD_colon_P = contrasting("STEM_CTRL_pediatric_sigma", "STEM_CD_pediatric_sigma", design), #  11
-    # diff_H_CD_colon_P = contrasting("DIFF_CTRL_pediatric_sigma", "DIFF_CD_pediatric_sigma", design), #  12
-    stem_ileum_CD_A_P = contrasting("STEM_CD_adult_ileum", "STEM_CD_pediatric_ileum", design), #  13
-    stem_colon_CD_A_P = contrasting("STEM_CD_adult_sigma", "STEM_CD_pediatric_sigma", design), #  14
-    # diff_ileum_CD_A_P = contrasting("DIFF_CD_adult_ileum", "DIFF_CD_pediatric_ileum", design), #  15
-    diff_colon_CD_A_P = contrasting("DIFF_CD_adult_sigma", "DIFF_CD_pediatric_sigma", design), #  16
-    #  17
-    #  18
-    #  19
-    #  20
-    #  21
-    #  22
-    #  23
-    #  24
-    #  25
-    #  26
-    #  27
-    diff_colon_H_CD = contrasting("DIFF_CTRL_.*_sigma", "DIFF_CD_.*_sigma", design), #  28
-    stem_colon_CD_A_P = contrasting("STEM_CD_adult_sigma", "STEM_CD_pediatric_sigma", design), #  29
-    diff_colon_CD_A_P = contrasting("DIFF_CD_adult_sigma", "DIFF_CD_pediatric_sigma", design), #  30
-    stem_ileum_CD_A_P = contrasting("STEM_CD_adult_ileum", "STEM_CD_pediatric_ileum", design), #  31
-    # DIFF_ileum_CD_A_P = contrasting("DIFF_CD_adult_ileum", "DIFF_CD_pediatric_ileum", design), #  32
-    stem_ileum_P_A = contrasting("STEM.*pediatric_ileum", "STEM.*adult_ileum", design), #  33
-    stem_colon_P_A = contrasting("STEM.*pediatric_sigma", "STEM.*adult_sigma", design), #  34
-    # diff_ileum_P_A = contrasting("DIFF.*pediatric_ileum", "DIFF*adult_ileum", design), #  35 # Impossible
-    diff_colon_P_A = contrasting("DIFF.*pediatric_sigma", "DIFF.*adult_sigma", design), #  36
-    diff_vs_stem = contrasting("^DIFF", "^STEM", design), # Siempre por separado
-    CD_vs_CTRL = contrasting("_CD_", "_CTRL_", design),
-    pediatric_vs_adult = contrasting("pediatric", "adult", design),
-    ileum_vs_sigma = contrasting("ileum", "sigma", design)
-
-    # STEM__ileum_vs_sigma = contrasting("STEM.*ileum", "STEM.*sigma", design), # STEM ileum vs STEM sigma
-    # DIFF__ileum_vs_sigma = contrasting("DIFF.*ileum", "DIFF.*sigma", design),# DIFF ileum vs DIFF sigma
-    # STEM__pediatric_vs_adult = contrasting("STEM.*pediatric", "STEM.*adult", design),
-    # DIFF__pediatric_vs_adult = contrasting("DIFF.*pediatric", "DIFF.*adult", design),
-    # ileum__STEM_vs_DIFF = contrasting("STEM.*ileum", "DIFF.*ileum", design), # OK
-    # sigma__STEM_vs_DIFF = contrasting("STEM.*sigma", "DIFF.*sigma", design), # OK
-    # # sigma_DIFF__pediatric_vs_adult = contrasting("DIFF.*pediatric_sigma", "DIFF.*adult_sigma", design),
-    # # sigma_STEM__pediatric_vs_adult = contrasting("STEM.*pediatric_sigma", "STEM.*adult_sigma", design),
-    # sigma__pediatric_vs_adult = contrasting("pediatric_sigma", "adult_sigma", design),
-    # ileum__pediatric_vs_adult = contrasting("pediatric_ileum", "adult_ileum", design),
-    # # STEM_ileum_CD__pediatric_vs_adult = contrasting("STEM_CD_pediatric_ileum", "STEM_CD_adult_ileum", design),
-    # # STEM_ileum__pediatric_adult = contrasting("STEM_.*_pediatric_ileum", "STEM_.*_adult_ileum", design),
-    # # STEM_CD_ileum__pediatric_adult = contrasting("STEM_CD_pediatric_ileum", "STEM_CD_adult_ileum", design),
-    # # DIFF_CD_ileum__pediatric_adult = contrasting("DIFF_CD_pediatric_ileum", "DIFF_CD_adult_ileum", design),
-    # DIFF_CD_sigma__pediatric_vs_adult = contrasting("DIFF_CD_pediatric_sigma", "DIFF_CD_adult_sigma", design),
-    # STEM_CD_sigma__pediatric_vs_adult = contrasting("STEM_CD_pediatric_sigma", "STEM_CD_adult_sigma", design),
-    #
-    # # adult_CD_ileum__STEM_vs_DIFF = contrasting("STEM_CD_adult_ileum", "DIFF_CD_adult_ileum", design),
-    # # pediatric_CD_ileum__STEM_DIFF = contrasting("STEM_CD_pediatric_ileum", "DIFF_CD_pediatric_ileum", design),
-    # # CD_ileum__STEM_DIFF = contrasting("STEM_CD_.*_ileum", "DIFF_CD_.*_ileum", design),
-    # CD_sigma__STEM_vs_DIFF = contrasting("STEM_CD_.*_sigma", "DIFF_CD_.*_sigma", design),
-    #
-    # # adult_CTRL_ileum__STEM_DIFF = contrasting("STEM_CTRL_adult_ileum", "DIFF_CTRL_adult_ileum", design),
-    # # pediatric_CTRL_ileum__STEM_DIFF = contrasting("STEM_CTRL_pediatric_ileum", "DIFF_CTRL_pediatric_ileum", design),
-    # # CTRL_ileum__STEM_DIFF = contrasting("STEM_CTRL_.*_ileum", "DIFF_CTRL_.*_ileum", design),
-    # CTRL_sigma__STEM_vs_DIFF = contrasting("STEM_CTRL_.*_sigma", "DIFF_CTRL_.*_sigma", design),
-    # # CD_sigma_DIFF__pediatric_adult = contrasting("DIFF_CD_pediatric_sigma", "DIFF_CD_adult_sigma", design),
-    # CTRL_sigma_STEM__pediatric_vs_adult = contrasting("STEM_CTRL_pediatric_sigma", "STEM_CTRL_adult_sigma", design),
-    #
-    # STEM_sigma_pediatric__CD_vs_CTRL = contrasting("STEM_CD_pediatric_sigma", "STEM_CTRL_pediatric_sigma", design),
-    # STEM_sigma_adult__CD_vs_CTRL = contrasting("STEM_CD_adult_sigma", "STEM_CTRL_adult_sigma", design),
-    # # DIFF_sigma_pediatric_CD_CTRL = contrasting("DIFF_CD_pediatric_sigma", "DIFF_CTRL_pediatric_sigma", design),
-    # DIFF_sigma_adult__CD_vs_CTRL = contrasting("DIFF_CD_adult_sigma", "DIFF_CTRL_adult_sigma", design),
-    # DIFF_CD_adult__ileum_vs_sigma = contrasting("DIFF_CD_adult_ileum", "DIFF_CD_adult_sigma", design),
-    # DIFF_CD__adult_ileum_vs_pediatric_sigma = contrasting("DIFF_CD_adult_ileum", "DIFF_CD_pediatric_sigma", design),
-    # DIFF_adult__CD_ileum_vs_CTRL_sigma = contrasting("DIFF_CD_adult_ileum", "DIFF_CTRL_adult_sigma", design),
-    # # CD_adult_ileum__DIFF_vs_STEM = contrasting("DIFF_CD_adult_ileum", "STEM_CD_adult_ileum", design),
-    # CD_adult__DIFF_ileum_vs_STEM_sigma = contrasting("DIFF_CD_adult_ileum", "STEM_CD_adult_sigma", design),
-    # CD__DIFF_adult_ileum_vs_STEM_pediatric_ileum = contrasting("DIFF_CD_adult_ileum", "STEM_CD_pediatric_ileum", design),
-    # CD__DIFF_adult_ileum_vs_STEM_pediatric_sigma = contrasting("DIFF_CD_adult_ileum", "STEM_CD_pediatric_sigma", design),
-    # adult__DIFF_CD_ileum_vs_STEM_CTRL_sigma = contrasting("DIFF_CD_adult_ileum", "STEM_CTRL_adult_sigma", design),
-    # DIFF_CD_adult_ileum_vs_STEM_CTRL_pediatric_sigma = contrasting("DIFF_CD_adult_ileum", "STEM_CTRL_pediatric_sigma", design),
-    # DIFF_adult_sigma__CD_vs_CTRL = contrasting("DIFF_CD_adult_sigma", "STEM_CD_adult_ileum", design),
-    # CD_adult_sigma__DIFF_vs_STEM = contrasting("DIFF_CD_adult_sigma", "STEM_CD_adult_sigma", design),
-    # CD__DIFF_adult_sigma_vs_STEM_pediatric_ileum = contrasting("DIFF_CD_adult_sigma", "STEM_CD_pediatric_ileum", design),
-    # CD_sigma__DIFF_adult_vs_STEM_pediatric = contrasting("DIFF_CD_adult_sigma", "STEM_CD_pediatric_sigma", design),
-    # adult_sigma__DIFF_CD_vs_STEM_CTRL = contrasting("DIFF_CD_adult_sigma", "STEM_CTRL_adult_sigma", design),
-    # sigma__DIFF_CD_adult_vs_STEM_CTRL_pediatric = contrasting("DIFF_CD_adult_sigma", "STEM_CTRL_pediatric_sigma", design),
-    # DIFF_sigma__CD_pediatric_vs_CTRL_adult = contrasting("DIFF_CD_pediatric_sigma", "DIFF_CTRL_adult_sigma", design),
-    # CD__DIFF_pediatric_sigma_vs_STEM_adult_ileum = contrasting("DIFF_CD_pediatric_sigma", "STEM_CD_adult_ileum", design),
-    # CD_sigma__DIFF_CD_vs_STEM_CTRL = contrasting("DIFF_CD_pediatric_sigma", "STEM_CTRL_pediatric_sigma", design),
-    # # CD_pediatric__DIFF_sigma_STEM_ileum = contrasting("DIFF_CD_adult_sigma", "STEM_CD_pediatric_ileum", design),
-    # # 22 of combn(colnames(design)[-1], 2):
-    # CD_pediatric_sigma__DIFF_vs_STEM = contrasting("DIFF_CD_pediatric_sigma", "STEM_CD_pediatric_sigma", design),
-    # sigma__DIFF_CD_pediatric_vs_STEM_CTRL_adult_sigma = contrasting("DIFF_CD_pediatric_sigma", "STEM_CTRL_adult_sigma", design),
-    # # pediatric_sigma__DIFF_CD_STEM_CTRL = contrasting("DIFF_CD_pediatric_sigma", "STEM_CTRL_pediatric_sigma", design),
-    # adult__DIFF_CTRL_sigma_vs_STEM_CD_ileum = contrasting("DIFF_CTRL_adult_sigma", "STEM_CD_adult_ileum", design),
-    # adult_sigma__DIFF_CTRL_vs_STEM_CD = contrasting("DIFF_CTRL_adult_sigma", "STEM_CD_adult_sigma", design),
-    # # 27
-    # DIFF_CTRL_adult_sigma_vs_STEM_CD_adult_sigma = contrasting("DIFF_CTRL_adult_sigma", "STEM_CD_pediatric_ileum", design),
-    # sigma__DIFF_CTRL_adult_vs_STEM_CD_pediatric = contrasting("DIFF_CTRL_adult_sigma", "STEM_CD_pediatric_sigma", design),
-    # CTRL_adult_sigma__DIFF_vs_STEM = contrasting("DIFF_CTRL_adult_sigma", "STEM_CTRL_adult_sigma", design),
-    # CTRL_sigma__DIFF_adult_vs_STEM_pediatric = contrasting("DIFF_CTRL_adult_sigma", "STEM_CTRL_pediatric_sigma", design),
-    # STEM_CD_adult__ileum_vs_sigma = contrasting("STEM_CD_adult_ileum", "STEM_CD_adult_sigma", design),
-    # # 32
-    # # STEM_CD_ileum__adult_vs_pediatric = contrasting("STEM_CD_adult_ileum", "STEM_CD_pediatric_ileum", design),
-    # STEM_CD__adult_ileum_vs_pediatric_sigma = contrasting("STEM_CD_adult_ileum", "STEM_CD_pediatric_sigma", design),
-    # STEM_adult__CD_ileum_vs_CTRL_sigma = contrasting("STEM_CD_adult_ileum", "STEM_CTRL_adult_sigma", design),
-    # STE__CD_adult_ileum_vs_CTRL_pediatric_sigma = contrasting("STEM_CD_adult_ileum", "STEM_CTRL_pediatric_sigma", design),
-    # STEM_CD__adult_sigma_vs_pediatric_ileum = contrasting("STEM_CD_adult_sigma", "STEM_CD_pediatric_ileum", design),
-    # # 37
-    # # STEM_CD_sigma__adult_pediatric = contrasting()
-    # # STEM_sigma_adult__CD_CTRL
-    # STEM_sigma__CD_adult_vs_CTRL_pediatric = contrasting("STEM_CD_adult_sigma", "STEM_CTRL_pediatric_sigma", design),
-    # STEM_CD_pediatric__ileum_vs_sigma = contrasting("STEM_CD_pediatric_ileum", "STEM_CD_pediatric_sigma", design),
-    # STEM__CD_pediatric_ileum_vs_CTRL_adult_sigma = contrasting("STEM_CD_pediatric_ileum", "STEM_CTRL_adult_sigma", design),
-    # # 42
-    # STEM_pediatric__CD_ileum_vs_CTRL_sigma = contrasting("STEM_CD_pediatric_ileum", "STEM_CTRL_pediatric_sigma", design),
-    # STEM_sigma__CD_pediatric_vs_CTRL_adult = contrasting("STEM_CD_pediatric_sigma", "STEM_CTRL_adult_sigma", design),
-    # # STEM_pediatric_sigma_CD_CTRL = contrasting("STEM_CD_pediatric_sigma", "STEM_CTRL_pediatric_sigma", design),
-    # STEM_CTRL_sigma__adult_vs_pediatric = contrasting("STEM_CTRL_adult_sigma", "STEM_CTRL_pediatric_sigma", design)
+    c1_stem_diff_colon_A = contrasting("STEM.*adult_sigma", "DIFF.*adult_sigma", design), # 1
+    c2_stem_diff_colon_P = contrasting("STEM.*pediatric_sigma", "DIFF.*pediatric_sigma", design), #  2
+    c3_stem_diff_ileum_A = contrasting("STEM.*adult_ileum", "DIFF.*adult_ileum", design), #  3
+    # c4_stem_diff_ileum_P = contrasting("STEM.*pediatric_ileum", "DIFF.*pediatric_ileum", design),  #  4
+    c5_stem_ileum_colon_A = contrasting("STEM.*adult_ileum", "STEM.*adult_sigma", design), #  5
+    c6_stem_ileum_colon_P = contrasting("STEM.*pediatric_ileum", "STEM.*pediatric_sigma", design), #  6
+    c7_diff_ileum_colon_A = contrasting("DIFF.*adult_ileum", "DIFF.*adult_sigma", design), #  7
+    # c8_diff_ileum_colon_P = contrasting("DIFF.*pediatric_ileum", "DIFF.*pediatric_ileum", design),  #  8
+    # c9_diff_H_CD_colon_A in reality has not inflamed CD only!! vs healthy ctrl
+    # c10_stem_H_CD_colon_A in reality has non inflamed CD only!! vs healthy ctrl
+    c11_stem_H_CD_colon_P = contrasting("STEM_CTRL_pediatric_sigma", "STEM_CD_pediatric_sigma", design), #  11
+    # c12_diff_H_CD_colon_P = contrasting("DIFF_CTRL_pediatric_sigma", "DIFF_CD_pediatric_sigma", design), #  12
+    # c13_stem_ileum_CD_A_P in reality stem_ileum_CD_A_P has not inflamed only!!
+    # c14_stem_colon_CD_A_P has not inflamed only on adults!!
+    # c15_diff_ileum_CD_A_P only not inflamed!!
+    # c16_diff_colon_CD_A_P adult diff not inflamed!!
+    # 17
+    # 18
+    # 19
+    # 20
+    # 21
+    # 22
+    # 23
+    # 24
+    # 25
+    # 26
+    # 27
+    # 28
+    c29_stem_colon_CD_A_P = contrasting("STEM_CD_adult_sigma", "STEM_CD_pediatric_sigma", design), #  29
+    c30_diff_colon_CD_A_P = contrasting("DIFF_CD_adult_sigma", "DIFF_CD_pediatric_sigma", design), #  30
+    c31_stem_ileum_CD_A_P = contrasting("STEM_CD_adult_ileum", "STEM_CD_pediatric_ileum", design), #  31
+    # c32_diff_ileum_CD_A_P = contrasting("DIFF_CD_adult_ileum", "DIFF_CD_pediatric_ileum", design), # 32 No n
+    # Just in case Siempre por separado
+    c33_diff_vs_stem = contrasting("^DIFF", "^STEM", design),
+    c34_CD_vs_CTRL = contrasting("_CD_", "_CTRL_", design),
+    c35_pediatric_vs_adult = contrasting("pediatric", "adult", design),
+    c36_ileum_vs_sigma = contrasting("ileum", "sigma", design)
     )
 
 contr.matrix <- makeContrasts(contrasts = contrasts, levels = colnames(design))
-
-design2 <- meta %>%
-    mutate(diff_colon_CD_Healthy_involved_A = case_when(
-        cell_type == "DIFF" & status == "healthy" & GROUP == "CD" & TYPE == "adult" & LOCATION == "sigma"~ 1,
-        cell_type == "DIFF" & status == "involved" & GROUP == "CD" & TYPE == "adult" & LOCATION == "sigma" ~ -1,
-        TRUE ~ 0),
-        ) %>%
-    select(diff_colon_CD_Healthy_involved_A,
-           ) %>%
-    as.matrix()
-contr.matrix <- makeContrast(contrasts = contrasts2, levels = colnames(design2))
 colnames(contr.matrix) <- names(contrasts)
 
-pick <- design %*% contr.matrix # To know which samples are taken
+design2 <- meta %>%
+    mutate(
+        c9_diff_H_CD_colon_A = case_when( # Number 9
+            cell_type == "DIFF" & status == "not inflamed" & GROUP == "CD" & TYPE == "adult" & LOCATION == "sigma" ~ -1,
+            cell_type == "DIFF" & status == "healthy" & GROUP == "CTRL" & TYPE == "adult" & LOCATION == "sigma"~ 1,
+            TRUE ~ 0),
+        c10_stem_H_CD_colon_A = case_when( # Number 10
+            cell_type == "STEM" & status == "not inflamed" & GROUP == "CD" & TYPE == "adult" & LOCATION == "sigma" ~ -1,
+            cell_type == "STEM" & status == "healthy" & GROUP == "CTRL" & TYPE == "adult" & LOCATION == "sigma"~ 1,
+            TRUE ~ 0),
+        c13_stem_ileum_CD_A_P = case_when( # Number 13
+            cell_type == "STEM" & status == "not inflamed" & GROUP == "CD" & TYPE == "pediatric" & LOCATION == "ileum" ~ -1,
+            cell_type == "STEM" & status == "not inflamed" & GROUP == "CD" & TYPE == "adult" & LOCATION == "ileum"~ 1,
+            TRUE ~ 0),
+        c14_stem_colon_CD_A_P = case_when( # Number 14
+            cell_type == "STEM" & GROUP == "CD" & TYPE == "pediatric" & LOCATION == "sigma" ~ -1,
+            cell_type == "STEM" & status == "not inflamed" & GROUP == "CD" & TYPE == "pediatric" & LOCATION == "sigma"~ 1,
+            TRUE ~ 0),
+        c15_diff_ileum_CD_A_P = case_when( # Number 15
+            cell_type == "DIFF" & status == "not inflamed" & GROUP == "CD" & TYPE == "pediatric" & LOCATION == "ileum" ~ -1,
+            cell_type == "DIFF" & status == "not inflamed" & GROUP == "CD" & TYPE == "adult" & LOCATION == "ileum"~ 1,
+            TRUE ~ 0),
+        c16_diff_colon_CD_A_P = case_when( # Number 16
+            cell_type == "DIFF" & GROUP == "CD" & TYPE == "pediatric" & LOCATION == "sigma" ~ -1,
+            cell_type == "DIFF" & status == "not inflamed" & GROUP == "CD" & TYPE == "adult" & LOCATION == "sigma"~ 1,
+            TRUE ~ 0),
+        c17_colon_CD_healthy_involved_A = case_when( # Number 17
+            cell_type == "DIFF" & status == "not inflamed" & GROUP == "CD" & TYPE == "adult" & LOCATION == "sigma" ~ -1,
+            cell_type == "DIFF" & status == "healthy" & GROUP == "CD" & TYPE == "adult" & LOCATION == "sigma"~ 1,
+            TRUE ~ 0),
+        c18_stem_colon_CD_Healthy_involved_A = case_when( # Number 18
+            cell_type == "STEM" & status == "healthy" & GROUP == "CTRL" & TYPE == "adult" & LOCATION == "sigma"~ 1,
+            cell_type == "STEM" & status == "not inflamed" & GROUP == "CD" & TYPE == "adult" & LOCATION == "sigma" ~ -1,
+            TRUE ~ 0),
+        c19_diff_ileum_CD_healthy_involved_A = case_when( # Number 19
+            cell_type == "DIFF" & status == "healthy" & GROUP == "CTRL" & TYPE == "adult" & LOCATION == "ileum"~ 1,
+            cell_type == "DIFF" & status == "not inflamed" & GROUP == "CD" & TYPE == "adult" & LOCATION == "ileum" ~ -1,
+            TRUE ~ 0),
+        c20_stem_ileum_CD_healthy_involved_A = case_when( # Number 20
+            cell_type == "STEM" & status == "healthy" & GROUP == "CTRL" & TYPE == "adult" & LOCATION == "ileum"~ 1,
+            cell_type == "STEM" & status == "not inflamed" & GROUP == "CD" & TYPE == "adult" & LOCATION == "ileum" ~ -1,
+            TRUE ~ 0),
+        c21_diff_colon_CD_healthy_involved_P = case_when( # Number 21
+            cell_type == "DIFF" & status == "healthy" & GROUP == "CC" & TYPE == "pediatric" & LOCATION == "sigma"~ 1,
+            cell_type == "DIFF" & GROUP == "CD" & TYPE == "pediatric" & LOCATION == "sigma" ~ -1,
+            TRUE ~ 0),
+        c22_stem_colon_CD_Healthy_involved_P = case_when( # Number 22
+            cell_type == "STEM" & status == "healthy" & GROUP == "CTRL" & TYPE == "pediatric" & LOCATION == "sigma"~ 1,
+            cell_type == "STEM" & status == "not inflamed" & GROUP == "CD" & TYPE == "pediatric" & LOCATION == "sigma" ~ -1,
+            TRUE ~ 0),
+        c23_diff_ileum_CD_healthy_involved_P = case_when( # Number 23
+            cell_type == "DIFF" & status == "healthy" & GROUP == "CTRL" & TYPE == "pediatric" & LOCATION == "ileum"~ 1,
+            cell_type == "DIFF" & status == "not inflamed" & GROUP == "CD" & TYPE == "pediatric" & LOCATION == "ileum" ~ -1,
+            TRUE ~ 0),
+        c24_stem_ileum_CD_healthy_involved_P = case_when( # Number 24
+            cell_type == "STEM" & status == "healthy" & GROUP == "CTRL" & TYPE == "pediatric" & LOCATION == "ileum"~ 1,
+            cell_type == "STEM" & status == "involved" & GROUP == "CD" & TYPE == "pediatric" & LOCATION == "ileum" ~ -1,
+            TRUE ~ 0),
+        # c25_stem_ileum_H_healthy_CD = case_when( # Number 25 just 1 sample
+        #     cell_type == "STEM" & GROUP == "CTRL" & LOCATION == "ileum"~ 1,
+        #     cell_type == "STEM" & status == "not involved" & GROUP == "CD" & LOCATION == "ileum" ~ -1,
+        #     TRUE ~ 0),
+        c26_diff_ileum_H_healthy_CD = case_when( # Number 26
+            cell_type == "DIFF" & GROUP == "CTRL" & LOCATION == "ileum"~ 1,
+            cell_type == "DIFF" & status == "not involved" & GROUP == "CD" & LOCATION == "ileum" ~ -1,
+            TRUE ~ 0),
+        c27_stem_colon_H_healthy_CD = case_when( # Number 27
+            cell_type == "STEM" & GROUP == "CTRL" & LOCATION == "sigma"~ 1,
+            cell_type == "STEM" & status == "not involved" & GROUP == "CD" & LOCATION == "sigma" ~ -1,
+            TRUE ~ 0),
+        c28_diff_colon_H_CD = case_when( # Number 28
+            cell_type == "DIFF" & status == "healthy" & GROUP == "CTRL" & LOCATION == "sigma"~ 1,
+            cell_type == "DIFF" & status == "healthy" & GROUP == "CD" & LOCATION == "sigma" ~ -1,
+            TRUE ~ 0)
+        ) %>%
+    dplyr::select(-colname, -cell_type, -status, -AaD, -age, -GROUP, -LOCATION,
+                  -SAMPLE, -reanalyzed, -SAMPLE2, -TYPE) %>%
+    as.matrix()
 
-samples_used <- t(apply(pick, 2, table))
+# If there are less than 3 samples we can't have meaningful comparisons
+design2 <- design2[, colSums(design2 != 0) > 2]
+keep <- apply(design2, 2, function(x){length(unique(x)) != 2 }) # Check that there aren't empty groups
+design2 <- design2[, keep]
+
+pick <- design %*% contr.matrix # To know which samples are taken
+pick <- cbind(pick, design2)
+
+# Three samples that are only on the intercept group
+w <- which(rowSums(design) == 1)
+stopifnot(w == c(16, 18, 40))
+
+pick[w[1], c("stem_ileum_colon_P", "pediatric_vs_adult", "ileum_vs_sigma")] <- 1
+pick[w[1], c("diff_vs_stem", "CD_vs_CTRL")] <- -1
+
+pick[w[2], c("stem_diff_colon_P", "CD_vs_CTRL", "ileum_vs_sigma")] <- -1
+pick[w[2], c("diff_vs_stem", "pediatric_vs_adult")] <- 1
+
+pick[w[3], c("diff_vs_stem", "CD_vs_CTRL", "pediatric_vs_adult", "ileum_vs_sigma")] <- 1
+
+p <- apply(pick, 2, table)
+if (any(lengths(p) == 2)) {
+    p[lengths(p) == 2] <- lapply(p[lengths(p) == 2], function(x){
+        y <- c(x, "0" = 0)
+        y[c("-1", "0", "1")]})
+    samples_used <- t(simplify2array(p))
+} else {
+    samples_used <- t(p)
+}
 stopifnot(ncol(samples_used) == 3)
+write.csv(samples_used[, c(3, 1)], "processed/samples_used.csv")
+
 
 pu <- unique(t(pick))
 # If there are duplicate contrast check the output and remove them
-if (nrow(t(pick)) - nrow(pu) != 0){
+if ((nrow(t(pick)) - nrow(pu)) != 0){
 
-    duplicated_contr <- setdiff(rownames(t(pick)), rownames(pu))
+    duplicated_contr <- base::setdiff(rownames(t(pick)), rownames(pu))
 
     dups <- sapply(duplicated_contr, function(y) {
         apply(pick, 2, function(x) {all(x ==pick[, y])})
