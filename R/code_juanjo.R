@@ -109,7 +109,7 @@ multilimma <- function(xdat, classes, nmethod) {
     ### norm step
     y <- DGEList(myxdat)
     y <- calcNormFactors(y)
-    pdf(paste("QC_", colnames(classes)[i], "_", nmethod, ".pdf", sep = ""))
+    # pdf(paste("QC_", colnames(classes)[i], "_", nmethod, ".pdf", sep = ""))
     v <- voom(y, normalize.method = nmethod, plot = TRUE) # v$E <-normalised matrix
 
     cat(i, colnames(classes)[i], "here\n")
@@ -120,26 +120,26 @@ multilimma <- function(xdat, classes, nmethod) {
     BaseMean <- apply(norm, 1, mean)
     Log2R <- apply(norm[, which(myclassx == 2)], 1, mean) - apply(norm[, which(myclassx == 1)], 1, mean)
 
-    boxplot(norm, las = 3)
-    plot(BaseMean, Log2R, main = colnames(classes)[i], cex = 0.3)
-    abline(h = 0, lwd = 2, col = "blue")
+    # boxplot(norm, las = 3)
+    # plot(BaseMean, Log2R, main = colnames(classes)[i], cex = 0.3)
+    # abline(h = 0, lwd = 2, col = "blue")
     # to speed only most 1000 genes
     sel1000 <- order(apply(norm, 1, var), decreasing = T)
-    plotPCA(t(norm[sel1000, ]), factor(myclassx))
+    # plotPCA(t(norm[sel1000, ]), factor(myclassx))
 
     fc[, i] <- l2fc(Log2R)
 
     mod <- model.matrix(~ factor(myclassx, levels = c("1", "2")))
     fit1 <- lmFit(norm, mod)
     eb1 <- eBayes(fit1)
-    plotSA(eb1, main = "Final model: Mean-variance trend")
+    # plotSA(eb1, main = "Final model: Mean-variance trend")
     p[, i] <- eb1$p.value[, 2]
     fdr[, i] <- p.adjust(p[, i], method = "BH")
-    tt <- topTable(eb1, coef = 2, number = Inf)
-    tt <- tt[names(Log2R), ]
-    plot(tt$AveExpr, tt$logFC)
-    plot(tt$logFC, Log2R, cex = 0.3)
-    dev.off()
+    # tt <- topTable(eb1, coef = 2, number = Inf)
+    # tt <- tt[names(Log2R), ]
+    # plot(tt$AveExpr, tt$logFC)
+    # plot(tt$logFC, Log2R, cex = 0.3)
+    # dev.off()
     t[, i] <- eb1$t[, 2]
 
     lup <- length(which(p[, i] < 0.05 & fc[, i] > 1.5))
@@ -163,12 +163,12 @@ r2[results$fc > 1.5 & results$fdr < 0.05] <- "UUP"
 r2[results$fc < -1.5 & results$fdr < 0.05] <- "DDW"
 r2[r2 %in% c("FALSE", "TRUE")] <- ""
 colnames(r2) <- gsub("fc_", "sign_", colnames(r2))
-contrasts_prefix <- paste0("contrast", seq_len(ncol(results$fc)))
-colnames(r2) <- paste(contrasts_prefix, colnames(r2))
-colnames(results$fc) <- paste(contrasts_prefix, colnames(results$fc))
-colnames(results$p) <- paste(contrasts_prefix, colnames(results$p))
-colnames(results$t) <- paste(contrasts_prefix, colnames(results$t))
-colnames(results$fdr) <- paste(contrasts_prefix, colnames(results$fdr))
+# contrasts_prefix <- paste0("contrast", seq_len(ncol(results$fc)))
+# colnames(r2) <- paste(contrasts_prefix, colnames(r2))
+# colnames(results$fc) <- paste(contrasts_prefix, colnames(results$fc))
+# colnames(results$p) <- paste(contrasts_prefix, colnames(results$p))
+# colnames(results$t) <- paste(contrasts_prefix, colnames(results$t))
+# colnames(results$fdr) <- paste(contrasts_prefix, colnames(results$fdr))
 
 dfall <- data.frame(Gene = rownames(cnt),
                     r2,
@@ -191,8 +191,8 @@ r2[results$fc < -1.5 & results$fdr < 0.05] <- "DDW"
 r2[r2 %in% c("FALSE", "TRUE")] <- ""
 colnames(r2) <- gsub("fc_", "sign_", colnames(r2))
 
-contrasts_prefix <- paste0("contrast", seq_len(ncol(results$fc)))
-colnames(r2) <- paste(contrasts_prefix, colnames(r2))
+# contrasts_prefix <- paste0("contrast", seq_len(ncol(results$fc)))
+# colnames(r2) <- paste(contrasts_prefix, colnames(r2))
 dfall <- data.frame(Gene = rownames(cnt), r2, results$fc, results$p, results$t, results$fdr)
 
 WriteXLS("dfall", "FULLRESULTS_QUANTILE.xls")
