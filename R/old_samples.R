@@ -113,7 +113,7 @@ contrasts <- c(
     c5_stem_ileum_colon_A = contrasting("STEM.*adult_ileum", "STEM.*adult_sigma", design), #  5
     c6_stem_ileum_colon_P = contrasting("STEM.*pediatric_ileum", "STEM.*pediatric_sigma", design), #  6
     c7_diff_ileum_colon_A = contrasting("DIFF.*adult_ileum", "DIFF.*adult_sigma", design), #  7
-    # c8_diff_ileum_colon_P = contrasting("DIFF.*pediatric_ileum", "DIFF.*pediatric_ileum", design),  #  8
+    # c8_diff_ileum_colon_P = contrasting("DIFF.*pediatric_ileum", "DIFF.*pediatric_sigma", design),  #  8
     # c9_diff_H_CD_colon_A in reality has not inflamed CD only!! vs healthy ctrl
     # c10_stem_H_CD_colon_A in reality has non inflamed CD only!! vs healthy ctrl
     c11_stem_H_CD_colon_P = contrasting("STEM_CTRL_pediatric_sigma", "STEM_CD_pediatric_sigma", design), #  11
@@ -164,7 +164,7 @@ design2 <- meta %>%
             TRUE ~ 0),
         c14_stem_colon_CD_A_P = case_when( # Number 14
             cell_type == "STEM" & GROUP == "CD" & TYPE == "pediatric" & LOCATION == "sigma" ~ -1,
-            cell_type == "STEM" & status == "not inflamed" & GROUP == "CD" & TYPE == "pediatric" & LOCATION == "sigma"~ 1,
+            cell_type == "STEM" & status == "not inflamed" & GROUP == "CD" & TYPE == "adult" & LOCATION == "sigma"~ 1,
             TRUE ~ 0),
         c15_diff_ileum_CD_A_P = case_when( # Number 15
             cell_type == "DIFF" & status == "not inflamed" & GROUP == "CD" & TYPE == "pediatric" & LOCATION == "ileum" ~ -1,
@@ -190,20 +190,20 @@ design2 <- meta %>%
             cell_type == "STEM" & status == "healthy" & GROUP == "CTRL" & TYPE == "adult" & LOCATION == "ileum"~ 1,
             cell_type == "STEM" & status == "not inflamed" & GROUP == "CD" & TYPE == "adult" & LOCATION == "ileum" ~ -1,
             TRUE ~ 0),
-        c21_diff_colon_CD_healthy_involved_P = case_when( # Number 21
-            cell_type == "DIFF" & status == "healthy" & GROUP == "CC" & TYPE == "pediatric" & LOCATION == "sigma"~ 1,
-            cell_type == "DIFF" & GROUP == "CD" & TYPE == "pediatric" & LOCATION == "sigma" ~ -1,
-            TRUE ~ 0),
+        # c21_diff_colon_CD_healthy_involved_P = case_when( # Number 21
+        #     cell_type == "DIFF" & status == "not involved" & GROUP == "CD" & TYPE == "pediatric" & LOCATION == "sigma"~ 1,
+        #     cell_type == "DIFF" & GROUP == "CD" & TYPE == "pediatric" & LOCATION == "sigma" ~ -1,
+        #     TRUE ~ 0),
         c22_stem_colon_CD_Healthy_involved_P = case_when( # Number 22
             cell_type == "STEM" & status == "healthy" & GROUP == "CTRL" & TYPE == "pediatric" & LOCATION == "sigma"~ 1,
             cell_type == "STEM" & status == "not inflamed" & GROUP == "CD" & TYPE == "pediatric" & LOCATION == "sigma" ~ -1,
             TRUE ~ 0),
         c23_diff_ileum_CD_healthy_involved_P = case_when( # Number 23
-            cell_type == "DIFF" & status == "healthy" & GROUP == "CTRL" & TYPE == "pediatric" & LOCATION == "ileum"~ 1,
+            cell_type == "DIFF" & status == "not involved" & GROUP == "CD" & TYPE == "pediatric" & LOCATION == "ileum"~ 1,
             cell_type == "DIFF" & status == "not inflamed" & GROUP == "CD" & TYPE == "pediatric" & LOCATION == "ileum" ~ -1,
             TRUE ~ 0),
         c24_stem_ileum_CD_healthy_involved_P = case_when( # Number 24
-            cell_type == "STEM" & status == "healthy" & GROUP == "CTRL" & TYPE == "pediatric" & LOCATION == "ileum"~ 1,
+            cell_type == "STEM" & status == "healthy" & GROUP == "CD" & TYPE == "pediatric" & LOCATION == "ileum"~ 1,
             cell_type == "STEM" & status == "involved" & GROUP == "CD" & TYPE == "pediatric" & LOCATION == "ileum" ~ -1,
             TRUE ~ 0),
         # c25_stem_ileum_H_healthy_CD = case_when( # Number 25 just 1 sample
@@ -219,8 +219,8 @@ design2 <- meta %>%
             cell_type == "STEM" & status == "not involved" & GROUP == "CD" & LOCATION == "sigma" ~ -1,
             TRUE ~ 0),
         c28_diff_colon_H_CD = case_when( # Number 28
-            cell_type == "DIFF" & status == "healthy" & GROUP == "CTRL" & LOCATION == "sigma"~ 1,
-            cell_type == "DIFF" & status == "healthy" & GROUP == "CD" & LOCATION == "sigma" ~ -1,
+            cell_type == "DIFF" & GROUP == "CTRL" & LOCATION == "sigma"~ 1,
+            cell_type == "DIFF" & status == "not involved" & GROUP == "CD" & LOCATION == "sigma" ~ -1,
             TRUE ~ 0)
         ) %>%
     dplyr::select(-colname, -cell_type, -status, -AaD, -age, -GROUP, -LOCATION,

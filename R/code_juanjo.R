@@ -110,7 +110,7 @@ multilimma <- function(xdat, classes, nmethod) {
     y <- DGEList(myxdat)
     y <- calcNormFactors(y)
     # pdf(paste("QC_", colnames(classes)[i], "_", nmethod, ".pdf", sep = ""))
-    v <- voom(y, normalize.method = nmethod, plot = TRUE) # v$E <-normalised matrix
+    v <- voom(y, normalize.method = nmethod, plot = FALSE) # v$E <-normalised matrix
 
     cat(i, colnames(classes)[i], "here\n")
     print(table(classes[, i]))
