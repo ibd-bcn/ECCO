@@ -1,3 +1,5 @@
+# Compare RNAseq and microarry by Average expression of the samples
+
 library("affy")
 library("edgeR")
 library("tidyr")
