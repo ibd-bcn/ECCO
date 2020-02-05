@@ -2,7 +2,8 @@ library(WriteXLS)
 library(gplots)
 library(limma)
 library(edgeR)
-comps <- read.csv("processed/comparisons.csv", header = T, row.names = 1, check.names = F)
+# Using the new_contrasts.R contrasts as talked on the 22nd January 2020
+# comps <- read.csv("processed/comparisons.csv", header = T, row.names = 1, check.names = F)
 data <- read.csv("processed/old_counts.csv", header = T, row.names = 1, check.names = F)
 
 l2fc <- function(logratio, base = 2) {
@@ -75,12 +76,11 @@ plotPCA <- function(xmat, gg) {
   print(g)
 }
 
-cnt <- round(data, 0)
-# DIFF_ileum_CD__pediatric_adult no two class variance here
-# DIFF_ileum__pediatric_adult no two class variance here
+cnt <- round(as.matrix(data), 0)
 
-comps <- comps
-#### only 10 first
+s <- read.csv("processed/new_comparisons.csv", check.names = FALSE,
+              row.names = 1)
+comps <- s[colnames(data), ]
 
 multilimma <- function(xdat, classes, nmethod) {
   # nmethod=
@@ -169,8 +169,13 @@ colnames(r2) <- gsub("fc_", "sign_", colnames(r2))
 # colnames(results$p) <- paste(contrasts_prefix, colnames(results$p))
 # colnames(results$t) <- paste(contrasts_prefix, colnames(results$t))
 # colnames(results$fdr) <- paste(contrasts_prefix, colnames(results$fdr))
+name <- gsub("^ENSG[0-9]+\\.[0-9]*_", "", rownames(r2))
+sym <- mapIds(org.Hs.eg.db, keys = gsub("\\..+", "", rownames(r2)), column = "SYMBOL",
+       keytype = "ENSEMBL")
 
-dfall <- data.frame(Gene = rownames(cnt),
+dfall <- data.frame(Gene = rownames(r2),
+                    Name = name,
+                    Symbol = sym,
                     r2,
                     results$fc,
                     results$p,
@@ -180,6 +185,8 @@ write.table(dfall, file = "processed/genes_juanjo.tsv", sep = "\t", row.names = 
             col.names = TRUE, quote = FALSE, na = "")
 WriteXLS("dfall", "FULLRESULTS_CYCLICLOESS.xls")
 
+
+# Quantile ####
 results <- multilimma(cnt, comps, "quantile")
 dfall <- data.frame(Gene = rownames(cnt), r2, results$fc, results$p, results$t, results$fdr)
 r <- abs(results$fc) > 1.5 & results$p < 0.05
