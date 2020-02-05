@@ -45,13 +45,13 @@ group_samples <- function(expr, names) {
 umat <- group_samples(counts, uniq_samples)
 umat <- umat[rowSums(umat) != 0, ]
 
-# Subset to just old samples
-expr <- umat[, colnames(umat) %in% meta$colname[meta$reanalyzed]]
-meta <- meta[meta$colname %in% colnames(expr), ]
-expr <- expr[, meta$`AGILENT/ARRAY CODE`]
 
 # Creating contrasts ####
-meta2 <- meta[, c("colname", "development", "GROUP", "TYPE", "LOCATION",
+# Some samples we have metadata but not expression
+meta <- meta[meta$colname %in% colnames(umat), ]
+# * Old samples ####
+meta_old <- meta[meta$reanalyzed, ]
+meta2 <- meta_old[, c("colname", "development", "GROUP", "TYPE", "LOCATION",
                   "status", "INVOLVEMENT")]
 colnames(meta2) <- tolower(colnames(meta2))
 
@@ -67,13 +67,40 @@ comp <- lapply(contr$contrast, function(x, m){
     y[rowSums(m3) == length(g2)] <- 1
     y
 }, m = tolower(as.matrix(meta2[, 2:7])))
-# * Formatting as table ####
+# ** Formatting as table ####
 s <- simplify2array(comp)
 colnames(s) <- contr$contrast
-rownames(s) <- meta$colname
+rownames(s) <- meta_old$colname
 s[s == 0] <- NA
 
 write.csv(s, "processed/new_comparisons.csv")
+
+# * New samples ####
+meta_new <- meta[!meta$reanalyzed, ]
+
+meta2 <- meta_new[, c("colname", "development", "GROUP", "TYPE", "LOCATION",
+                  "status", "INVOLVEMENT")]
+colnames(meta2) <- tolower(colnames(meta2))
+
+comp <- lapply(contr$contrast, function(x, m){
+    g1 <- unlist(strsplit(contr$`0`[contr$contrast == x], split = "_"),
+                 recursive = FALSE, use.names = FALSE)
+    g2 <- unlist(strsplit(contr$`1`[contr$contrast == x], split = "_"),
+                 recursive = FALSE, use.names = FALSE)
+    y <- vector("numeric", nrow(m))
+    m2 <- matrix(m %in% tolower(g1), ncol = ncol(m), nrow = nrow(m))
+    m3 <- matrix(m %in% tolower(g2), ncol = ncol(m), nrow = nrow(m))
+    y[rowSums(m2) == length(g1)] <- 2
+    y[rowSums(m3) == length(g2)] <- 1
+    y
+}, m = tolower(as.matrix(meta2[, 2:7])))
+# ** Formatting as table ####
+d <- simplify2array(comp)
+colnames(d) <- contr$contrast
+rownames(d) <- meta_new$colname
+d[d == 0] <- NA
+write.csv(d, "processed/new_compairons_new_samples.csv")
+
 # * Checking contrasts ####
 con <- apply(s, 2, table)
 # To check the contrasts
