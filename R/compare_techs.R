@@ -93,7 +93,7 @@ rename_cols <- c(colname = "AGILENT/ARRAY CODE",
 )
 
 meta <- readxl::read_excel(here::here("data", "variables CD cohort.xlsx")) %>%
-    dplyr::select(rename_cols) %>%
+    dplyr::rename(rename_cols) %>%
     filter(GROUP != "UC") %>%
     mutate(GROUP = toupper(GROUP),
            reanalyzed = endsWith(colname, "V"),
@@ -133,8 +133,14 @@ expr <- umat[, meta$colname[meta$reanalyzed]]
 
 # microarray ####
 microarrays <- readRDS(here::here("data", "microarrays.RDS"))
+class <- read.csv(here::here("data", "class_pegs_28042017.csv"),
+                  header = TRUE, sep = ";", dec = ",")
+class2 <- class[class$pass_qc == "yes", ]
+class2 <- class2[match(colnames(microarrays), class2$cel_file), ]
+sampleNames(microarrays) <- class2$SAMPLE
 
-shared_names <- intersect(meta$SAMPLE, colnames(microarrays))
+
+shared_names <- intersect(meta$SAMPLE, class2$SAMPLE)
 expr_names <- meta$colname[meta$SAMPLE %in% shared_names]
 expr <- expr[, expr_names]
 microarrays <- microarrays[, shared_names]
@@ -211,6 +217,9 @@ m3_values <- m3_values[shared_genes]
 # Compare ####
 
 plot_cor <- function(x, y) {
+  keep <- x > -3.5
+  x <- x[keep]
+  y <- y[keep]
   cors <- cor.test(x, y, method = "spearman")
   # L'escalat sembla com si es fes la mitjana per mostra no per gen!!!
   # Llavors la correlació s'aproxima (tot i que els números no)
@@ -223,9 +232,11 @@ plot_cor <- function(x, y) {
   on.exit(par(pars))
 }
 
+pdf("processed/RNAseq_microarray.pdf")
 plot_cor(r_values, m_values)
 plot_cor(r2_values, m2_values)
 plot_cor(r3_values, m3_values)
+dev.off()
 
 data.frame(rnaseq = r_values,
            micro = m_values) %>%
