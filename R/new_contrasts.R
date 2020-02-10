@@ -102,6 +102,7 @@ d[d == 0] <- NA
 write.csv(d, "processed/new_compairons_new_samples.csv")
 
 # * Checking contrasts ####
+# ** Old samples ####
 con <- apply(s, 2, table)
 # To check the contrasts
 k <- vapply(con, function(x){any(x[c("1", "2")] == 1)}, logical(1L))
@@ -119,11 +120,40 @@ con[incomplete] <- lapply(con[incomplete],
 values <- t(simplify2array(con))
 write.csv(values, "processed/new_contrasts.csv")
 
+
+# ** New samples ####
+con <- apply(d, 2, table)
+# To check the contrasts
+k <- vapply(con, function(x){any(x[c("1", "2")] == 1)}, logical(1L))
+stopifnot(sum(lengths(con) < 2 | k | is.na(k)) <= 10)
+incomplete <- lengths(con) < 3
+con[incomplete] <- lapply(con[incomplete],
+                          function(x){
+                              diff_names <- c("1", "2")
+                              y <- setdiff(diff_names, names(x))
+                              z <- 0
+                              names(z) <- y
+                              z <- c(x, z)
+                              z[diff_names]
+                          })
+values <- t(simplify2array(con))
+write.csv(values, "processed/new_contrasts_new_samples.csv")
+
 # GETS ####
+# * Old samples ####
 # perl ~/Documents/projects/GETS/gets.pl \
 #  --matrix=./processed/old.tsv \
 #  --geneinfo=./processed/genes_juanjo.tsv \
 #  --sampleinfo=./processed/samples_info_old.tsv \
 #  --colors=./processed/colors_info_old.tsv \
 #  --output=./processed/GETS_old_juanjo_v5 \
+#  --center=TRUE --overwrite=TRUE
+
+# * New samples ####
+# perl ~/Documents/projects/GETS/gets.pl \
+#  --matrix=./processed/new.tsv \
+#  --geneinfo=./processed/genes_juanjo_new_samples.tsv \
+#  --sampleinfo=./processed/samples_info_new.tsv \
+#  --colors=./processed/colors_info_old.tsv \
+#  --output=./processed/GETS_new_juanjo_v5 \
 #  --center=TRUE --overwrite=TRUE
