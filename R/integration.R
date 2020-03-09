@@ -54,10 +54,18 @@ expr <- umat[, shared_samples]
 meta <- meta[match(shared_samples, meta$colname), ]
 
 # Microbiome ####
+names_microb <- read.csv("data/FINAL SAMPLES on plate.csv")
+colnames(names_microb) <- c("short_code", "code", "concentr")
 microb <- read.csv("data/Partek_ECCO_Kraken_Classified_genus.txt",
                    sep = "\t", row.names = 1, check.names = FALSE)
 microb_names <- t(simplify2array(strsplit(colnames(microb), "_")))
 microb <- as.matrix(microb)
+
+s <- t(simplify2array(strsplit(colnames(microb), "_")))
+m <- mutate(names_microb, Sample = gsub(" BACT", "", code))
+m2 <- mutate(meta,
+             Sample = gsub(" ?(STEM|DIFF)", "", SAMPLE),
+             Sample = gsub("RNA ", "", Sample))
 
 Location <- model.matrix(~ 0 + LOCATION, meta)[, -1, drop = FALSE]
 colnames(Location) <- "ileum"
