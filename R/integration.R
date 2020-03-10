@@ -15,7 +15,7 @@ rename_cols <- c(colname = "AGILENT/ARRAY CODE",
 
 meta <- readxl::read_excel(here::here("data", "variables CD cohort.xlsx")) %>%
     dplyr::select(rename_cols) %>%
-    filter(GROUP != "UC") %>%
+    # filter(GROUP != "UC") %>%
     mutate(GROUP = toupper(GROUP),
            reanalyzed = endsWith(colname, "V"),
            # Age at diagnosis correted as per Isa instructions
@@ -62,10 +62,18 @@ microb_names <- t(simplify2array(strsplit(colnames(microb), "_")))
 microb <- as.matrix(microb)
 
 s <- t(simplify2array(strsplit(colnames(microb), "_")))
+# Samples without metadata ####
 m <- mutate(names_microb, Sample = gsub(" BACT", "", code))
 m2 <- mutate(meta,
              Sample = gsub(" ?(STEM|DIFF)", "", SAMPLE),
              Sample = gsub("RNA ", "", Sample))
+
+all(m$Sample %in% m2$Sample)
+i <- intersect(m$Sample, m2$Sample)
+diff_names <- setdiff(m$Sample, m2$Sample)
+write.csv(m[m$Sample %in% diff_names, ],
+          file = "processed/microbiome_missing.csv",
+          row.names = FALSE)
 
 Location <- model.matrix(~ 0 + LOCATION, meta)[, -1, drop = FALSE]
 colnames(Location) <- "ileum"
