@@ -56,9 +56,17 @@ meta <- meta[match(shared_samples, meta$colname), ]
 # Microbiome ####
 names_microb <- read.csv("data/FINAL SAMPLES on plate.csv")
 colnames(names_microb) <- c("short_code", "code", "concentr")
+
+
 microb <- read.csv("data/Partek_ECCO_Kraken_Classified_genus.txt",
                    sep = "\t", row.names = 1, check.names = FALSE)
 microb_names <- t(simplify2array(strsplit(colnames(microb), "_")))
+endings <- paste0(c("_R1", "_R2"), ".fastq.gz")
+combinations <- expand.grid(names_microb[, 1], endings)
+names_files <- apply(combinations, 1, paste0, collapse = "")
+df <- data.frame(names_files, Sample = combinations[, 1])
+write.csv(df, file = "processed/microbiome_samples.csv",
+          row.names = FALSE, quote = FALSE)
 microb <- as.matrix(microb)
 
 s <- t(simplify2array(strsplit(colnames(microb), "_")))
